@@ -66,8 +66,8 @@ color:white;
 <div id="adzan"></div>
 
 <div id="jadwal">
-Imsak 04:07 | Subuh 04:18 | Dzuhur 11:37 <br>
-Ashar 14:50 | Maghrib 17:37 | Isya 18:47
+Imsak 04:07 | Subuh 04:17 | Dzuhur 11:35 <br>
+Ashar 14:50 | Maghrib 17:35 | Isya 18:44
 </div>
 
 <button id="startBtn">Mulai Jam</button>
@@ -101,11 +101,11 @@ setTimeout(()=>osc.stop(),dur)
 // ================= JADWAL =================
 
 let jadwal=[
-{nama:"Subuh",waktu:"04:18"},
-{nama:"Dzuhur",waktu:"11:37"},
+{nama:"Subuh",waktu:"04:17"},
+{nama:"Dzuhur",waktu:"11:35"},
 {nama:"Ashar",waktu:"14:50"},
-{nama:"Maghrib",waktu:"17:37"},
-{nama:"Isya",waktu:"18:47"}
+{nama:"Maghrib",waktu:"17:35"},
+{nama:"Isya",waktu:"18:44"}
 ]
 
 let beepDone={}
@@ -138,7 +138,7 @@ if(jam==j && menit==m-1 && detik==57 && !beepDone[item.nama]){
 beepDone[item.nama]=true
 
 for(let i=0;i<3;i++){
-setTimeout(()=>beep(700,120),i*400)
+setTimeout(()=>beep(1000,600),i*600)
 }
 
 }
