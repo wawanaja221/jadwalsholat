@@ -5,7 +5,6 @@
 <title>Jadwal Sholat + Audio Scheduler</title>
 
 <style>
-
 body{
 background:black;
 color:red;
@@ -51,7 +50,6 @@ max-height:400px;
 overflow:auto;
 color:white;
 }
-
 </style>
 </head>
 
@@ -66,15 +64,19 @@ color:white;
 <div id="adzan"></div>
 
 <div id="jadwal">
-Imsak 04:06 | Subuh 04:16 | Dzuhur 11:30 <br>
-Ashar 14:50 | Maghrib 17:30 | Isya 18:40
+Imsak 04:05 | Subuh 04:15 | Dzuhur 11:31 <br>
+Ashar 14:50 | Maghrib 17:30 | Isya 18:38
 </div>
 
-<button id="startBtn">Mulai Jam</button>
 <button id="settingBtn">⚙</button>
 
 <div id="audioPanel">
 <h3>Audio Scheduler</h3>
+
+Volume:
+<input type="range" id="volume" min="0" max="2" step="0.1">
+<span id="volText"></span>
+
 <div id="audioBlocks"></div>
 </div>
 
@@ -82,115 +84,111 @@ Ashar 14:50 | Maghrib 17:30 | Isya 18:40
 
 <script>
 
-// ================= AUDIO =================
+// ================= AUDIO ENGINE =================
+let audioCtx
+let gainNode
 
-let audioCtx=null
+function initAudio(){
+audioCtx = new AudioContext()
 
+gainNode = audioCtx.createGain()
+gainNode.gain.value = localStorage.getItem("volume") || 1
+gainNode.connect(audioCtx.destination)
+
+document.getElementById("volume").value = gainNode.gain.value
+updateVolText()
+}
+
+// ================= BEEP HALUS =================
 function beep(freq,dur){
 
-let osc=audioCtx.createOscillator()
+let osc = audioCtx.createOscillator()
+let gain = audioCtx.createGain()
+
 osc.type="sine"
 osc.frequency.value=freq
-osc.connect(audioCtx.destination)
+
+gain.gain.setValueAtTime(0, audioCtx.currentTime)
+gain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02)
+gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur/1000)
+
+osc.connect(gain)
+gain.connect(gainNode)
 
 osc.start()
-setTimeout(()=>osc.stop(),dur)
+osc.stop(audioCtx.currentTime + dur/1000)
 
 }
 
-// ================= JADWAL =================
+// ================= POLA BEEP =================
+function beepPendek(){
+setTimeout(()=>beep(1000,300),0)
+setTimeout(()=>beep(1000,300),400)
+setTimeout(()=>beep(1000,300),800)
+}
 
+function beepPanjang(){
+beep(900,4000)
+}
+
+// ================= JADWAL =================
 let jadwal=[
-{nama:"Subuh",waktu:"04:16"},
-{nama:"Dzuhur",waktu:"11:30"},
+{nama:"Subuh",waktu:"04:15"},
+{nama:"Dzuhur",waktu:"11:31"},
 {nama:"Ashar",waktu:"14:50"},
 {nama:"Maghrib",waktu:"17:30"},
-{nama:"Isya",waktu:"18:40"}
+{nama:"Isya",waktu:"18:38"}
 ]
 
 let beepDone={}
 let adzanDone={}
 
 // ================= CEK ADZAN =================
-
 function cekAdzan(){
 
 let now=new Date()
 
-let jam=now.getHours()
-let menit=now.getMinutes()
-let detik=now.getSeconds()
-
 jadwal.forEach(item=>{
 
-let t=item.waktu.split(":")
-let j=parseInt(t[0])
-let m=parseInt(t[1])
+let [j,m]=item.waktu.split(":").map(Number)
 
-if(detik==10){
+if(now.getSeconds()==10){
 beepDone[item.nama]=false
 adzanDone[item.nama]=false
 }
 
-// beep sebelum adzan
-if(jam==j && menit==m-1 && detik==57 && !beepDone[item.nama]){
-
+if(now.getHours()==j && now.getMinutes()==m-1 && now.getSeconds()==57 && !beepDone[item.nama]){
 beepDone[item.nama]=true
-
-for(let i=0;i<3;i++){
-setTimeout(()=>beep(1100,500),i*600)
+beepPendek()
 }
 
-}
-
-// beep panjang adzan
-if(jam==j && menit==m && detik==0 && !adzanDone[item.nama]){
-
+if(now.getHours()==j && now.getMinutes()==m && now.getSeconds()==0 && !adzanDone[item.nama]){
 adzanDone[item.nama]=true
-
-beep(1000,4000)
-
+beepPanjang()
 tampilAdzan(item.nama)
-
 }
 
 })
 
 }
 
-// ================= TAMPIL ADZAN =================
-
+// ================= ADZAN TEXT =================
 function tampilAdzan(nama){
-
 let adzan=document.getElementById("adzan")
-
 adzan.innerHTML="WAKTU ADZAN "+nama.toUpperCase()
 adzan.style.display="block"
-
-setTimeout(()=>{
-adzan.style.display="none"
-},10000)
-
+setTimeout(()=>adzan.style.display="none",10000)
 }
 
 // ================= JAM =================
-
 function updateJam(){
-
 let now=new Date()
-
-let j=now.getHours().toString().padStart(2,"0")
-let m=now.getMinutes().toString().padStart(2,"0")
-let d=now.getSeconds().toString().padStart(2,"0")
-
-document.getElementById("jam").innerHTML=j+":"+m+":"+d
-
+document.getElementById("jam").innerHTML=
+now.toLocaleTimeString()
 }
 
 // ================= TANGGAL =================
-
 function updateTanggal(){
-
 let now=new Date()
 
 let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{
@@ -202,70 +200,45 @@ weekday:'long',day:'numeric',month:'long',year:'numeric'
 })
 
 document.getElementById("tanggal").innerHTML=masehi+" | "+hijri
-
 }
 
-// ================= PASARAN JAWA =================
-
+// ================= PASARAN =================
 function getPasaranJawa(){
-
 let now=new Date()
-
 let pasaran=["Legi","Pahing","Pon","Wage","Kliwon"]
-
 let tglAwal=new Date(1970,0,1)
-
 let selisih=Math.floor((now-tglAwal)/(1000*60*60*24))
-
 let index=(selisih+3)%5
-
 document.getElementById("kalenderJawa").innerHTML="Pasaran: "+pasaran[index]
-
 }
 
 // ================= COUNTDOWN =================
-
 function updateCountdown(){
 
 let now=new Date()
+let next=null,nama=""
 
-let next=null
-let nama=""
+for(let j of jadwal){
+let t=j.waktu.split(":")
+let w=new Date()
+w.setHours(t[0],t[1],0)
 
-for(let i=0;i<jadwal.length;i++){
-
-let waktu=new Date()
-let t=jadwal[i].waktu.split(":")
-
-waktu.setHours(t[0],t[1],0)
-
-if(waktu>now){
-
-next=waktu
-nama=jadwal[i].nama
-break
-
+if(w>now){next=w;nama=j.nama;break}
 }
 
-}
-
-if(next==null){
-
+if(!next){
 let t=jadwal[0].waktu.split(":")
-
 next=new Date()
 next.setDate(next.getDate()+1)
 next.setHours(t[0],t[1],0)
-
 nama=jadwal[0].nama
-
 }
 
-let selisih=next-now
+let s=next-now
 
-let jam=Math.floor(selisih/3600000)
-let menit=Math.floor((selisih%3600000)/60000)
-let detik=Math.floor((selisih%60000)/1000)
+let jam=Math.floor(s/3600000)
+let menit=Math.floor((s%3600000)/60000)
+let detik=Math.floor((s%60000)/1000)
 
 document.getElementById("countdown").innerHTML=
 "Menuju "+nama+" "+jam+":"+menit+":"+detik
@@ -273,31 +246,19 @@ document.getElementById("countdown").innerHTML=
 }
 
 // ================= AUDIO SCHEDULER =================
-
 const dayNames=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"]
 const audioBlocksDiv=document.getElementById("audioBlocks")
-
 const audios=[]
 
-for(let i=0;i<7;i++){
+for(let i=0;i<5;i++){
 
 const div=document.createElement("div")
 
 div.innerHTML=`
-
 <hr>
-Audio ${i+1}<br>
-
 <input type="file" class="audioFile" accept=".mp3"><br>
-
-${dayNames.map((d,j)=>`<label><input type="checkbox" class="day${i}" value="${j}">${d}</label>`).join("")}
-
-<br>
-
 <input type="time" class="timeInput${i}" step="1">
-
 <audio id="playerExtra${i}"></audio>
-
 `
 
 audioBlocksDiv.appendChild(div)
@@ -305,53 +266,24 @@ audioBlocksDiv.appendChild(div)
 audios.push({
 player:document.getElementById(`playerExtra${i}`),
 file:null,
-days:[],
 time:null
 })
 
 }
 
 document.querySelectorAll(".audioFile").forEach((input,idx)=>{
-
 input.addEventListener("change",e=>{
-
 audios[idx].file=URL.createObjectURL(e.target.files[0])
 audios[idx].player.src=audios[idx].file
-
+})
 })
 
-})
-
-for(let i=0;i<7;i++){
-
-const checkboxes=document.querySelectorAll(`.day${i}`)
-
-checkboxes.forEach(cb=>{
-
-cb.addEventListener("change",()=>{
-
-audios[i].days=Array.from(checkboxes)
-.filter(chk=>chk.checked)
-.map(chk=>parseInt(chk.value))
-
-})
-
-})
-
-}
-
-for(let i=0;i<7;i++){
-
+for(let i=0;i<5;i++){
 const timeInput=document.querySelector(`.timeInput${i}`)
-
 timeInput.addEventListener("change",e=>{
-
 const p=e.target.value.split(":").map(Number)
-
 audios[i].time={hour:p[0],minute:p[1],second:p[2]||0}
-
 })
-
 }
 
 function cekAudioTambahan(){
@@ -360,28 +292,38 @@ let now=new Date()
 
 audios.forEach(audio=>{
 
-if(!audio.file||!audio.days.length||!audio.time)return
+if(!audio.file||!audio.time)return
 
 if(
-audio.days.includes(now.getDay()) &&
 now.getHours()==audio.time.hour &&
 now.getMinutes()==audio.time.minute &&
 now.getSeconds()==audio.time.second
 ){
-
 audio.player.play()
-
 }
 
 })
 
 }
 
-// ================= START =================
+// ================= VOLUME =================
+let volSlider=document.getElementById("volume")
 
-document.getElementById("startBtn").onclick=function(){
+function updateVolText(){
+document.getElementById("volText").innerText=
+Math.round(volSlider.value*100)+"%"
+}
 
-audioCtx=new AudioContext()
+volSlider.oninput=function(){
+gainNode.gain.value=this.value
+localStorage.setItem("volume",this.value)
+updateVolText()
+}
+
+// ================= START AUTO =================
+function startSystem(){
+
+initAudio()
 
 updateJam()
 updateTanggal()
@@ -394,18 +336,14 @@ setInterval(updateCountdown,1000)
 setInterval(cekAdzan,1000)
 setInterval(cekAudioTambahan,1000)
 
-this.style.display="none"
-
 }
 
+window.onload=startSystem
+
 // ================= SETTING =================
-
 document.getElementById("settingBtn").onclick=()=>{
-
 let panel=document.getElementById("audioPanel")
-
 panel.style.display=panel.style.display=="none"?"block":"none"
-
 }
 
 </script>
