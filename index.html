@@ -1,54 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
 <title>Jadwal Sholat + Audio Scheduler</title>
 
 <style>
 body{
-background:black;
-color:red;
-font-family:monospace;
-margin:0;
-text-align:center;
+    background:black;
+    color:red;
+    font-family:monospace;
+    margin:0;
+    text-align:center;
 }
 
-#judul{font-size:50px;margin-top:20px;color:orange;}
-#tanggal{font-size:30px;color:cyan;margin-top:10px;}
-#jam{font-size:120px;margin-top:25px;color:orange;}
-#imam{font-size:30px;color:white;margin-top:10px;}
-#kalenderJawa{font-size:28px;color:lime;margin-top:10px;}
-#countdown{font-size:40px;color:white;margin-top:200px;}
-#jadwal{font-size:30px;color:yellow;margin-top:50px;}
+#judul{
+    font-size:50px;
+    margin-top:20px;
+    color:orange;
+}
+
+#tanggal{
+    font-size:30px;
+    color:cyan;
+    margin-top:10px;
+}
+
+#jam{
+    font-size:120px;
+    margin-top:25px;
+    color:orange;
+}
+
+#imam{
+    font-size:30px;
+    color:white;
+    margin-top:10px;
+}
+
+#kalenderJawa{
+    font-size:28px;
+    color:lime;
+    margin-top:10px;
+}
+
+#countdown{
+    font-size:40px;
+    color:white;
+    margin-top:200px;
+}
+
+#jadwal{
+    font-size:30px;
+    color:yellow;
+    margin-top:50px;
+    line-height:1.6;
+}
 
 #adzan{
-display:none;
-position:absolute;
-top:50%;
-width:100%;
-font-size:80px;
-color:lime;
+    display:none;
+    position:absolute;
+    top:50%;
+    width:100%;
+    font-size:80px;
+    color:lime;
 }
 
 #settingBtn{
-position:fixed;
-bottom:10px;
-right:10px;
-padding:6px 10px;
-cursor:pointer;
+    position:fixed;
+    bottom:10px;
+    right:10px;
+    padding:6px 10px;
+    cursor:pointer;
 }
 
 #audioPanel{
-display:none;
-position:fixed;
-bottom:50px;
-right:10px;
-background:#111;
-padding:10px;
-border:1px solid #555;
-max-height:400px;
-overflow:auto;
-color:white;
+    display:none;
+    position:fixed;
+    bottom:50px;
+    right:10px;
+    background:#111;
+    padding:10px;
+    border:1px solid #555;
+    max-height:400px;
+    overflow:auto;
+    color:white;
 }
 </style>
 </head>
@@ -56,295 +93,1331 @@ color:white;
 <body>
 
 <div id="judul">JADWAL SHOLAT</div>
+
 <div id="tanggal"></div>
+
 <div id="jam"></div>
-<div id="imam">MASTER IMAM : ......?</div>
+
+<div id="imam">
+MASTER IMAM : ......?
+</div>
+
 <div id="kalenderJawa"></div>
+
 <div id="countdown"></div>
-<div id="adzan"></div>
 
 <div id="jadwal">
-Imsak 04:09 | Subuh 04:19 | Dzuhur 11:36 <br>
-Ashar 14:56 | Maghrib 17:33 | Isya 18:43
+Memuat jadwal...
 </div>
+
+<div id="adzan"></div>
 
 <button id="settingBtn">⚙</button>
 
 <div id="audioPanel">
+
 <h3>Audio Scheduler</h3>
 
 Volume:
-<input type="range" id="volume" min="0" max="2" step="0.1">
+<input
+    type="range"
+    id="volume"
+    min="0"
+    max="2"
+    step="0.1"
+>
+
 <span id="volText"></span>
 
 <div id="audioBlocks"></div>
+
 </div>
 
-<audio id="player"></audio>
 
 <script>
 
-// ================= AUDIO ENGINE =================
-let audioCtx
-let gainNode
+// ======================================================
+// KONFIGURASI
+// ======================================================
+
+const KOTA = "Surabaya";
+
+
+// ======================================================
+// PATOKAN
+// ======================================================
+
+const PATOKAN = {
+
+    tanggal:"2026-08-21",
+
+    imsak:"04:09",
+
+    subuh:"04:19",
+
+    dzuhur:"11:36",
+
+    ashar:"14:56",
+
+    maghrib:"17:33",
+
+    isya:"18:43"
+
+};
+
+
+// ======================================================
+// DATA JADWAL SURABAYA AGUSTUS 2026
+// SESUAI TABEL YANG KAMU KASIH
+// ======================================================
+
+const DATA_AGUSTUS_2026 = {
+
+1:["04:13","04:23","11:39","15:00","17:33","18:44"],
+2:["04:13","04:23","11:39","15:00","17:33","18:44"],
+3:["04:13","04:23","11:39","15:00","17:33","18:44"],
+4:["04:13","04:23","11:39","15:00","17:33","18:44"],
+
+5:["04:13","04:23","11:39","14:59","17:33","18:44"],
+6:["04:13","04:23","11:39","14:59","17:33","18:44"],
+
+7:["04:12","04:22","11:38","14:59","17:33","18:44"],
+8:["04:12","04:22","11:38","14:59","17:33","18:44"],
+9:["04:12","04:22","11:38","14:59","17:33","18:44"],
+10:["04:12","04:22","11:38","14:59","17:33","18:44"],
+
+11:["04:12","04:22","11:38","14:58","17:33","18:44"],
+12:["04:12","04:22","11:38","14:58","17:33","18:44"],
+
+13:["04:11","04:21","11:37","14:58","17:33","18:44"],
+14:["04:11","04:21","11:37","14:58","17:33","18:44"],
+15:["04:11","04:21","11:37","14:58","17:33","18:44"],
+
+16:["04:10","04:20","11:37","14:57","17:33","18:43"],
+17:["04:10","04:20","11:37","14:57","17:33","18:43"],
+18:["04:10","04:20","11:37","14:57","17:33","18:43"],
+
+19:["04:09","04:19","11:36","14:56","17:33","18:43"],
+20:["04:09","04:19","11:36","14:56","17:33","18:43"],
+21:["04:09","04:19","11:36","14:56","17:33","18:43"],
+
+22:["04:08","04:18","11:35","14:55","17:32","18:42"],
+23:["04:08","04:18","11:35","14:55","17:32","18:42"],
+24:["04:08","04:18","11:35","14:55","17:32","18:42"],
+25:["04:08","04:18","11:35","14:55","17:32","18:42"],
+
+26:["04:07","04:17","11:34","14:53","17:32","18:42"],
+27:["04:07","04:17","11:34","14:53","17:32","18:42"],
+28:["04:07","04:17","11:34","14:53","17:32","18:42"],
+
+29:["04:05","04:15","11:33","14:51","17:32","18:42"],
+30:["04:05","04:15","11:33","14:51","17:32","18:42"],
+31:["04:05","04:15","11:33","14:51","17:32","18:42"]
+
+};
+
+
+// ======================================================
+// VARIABLE
+// ======================================================
+
+let jadwal = [];
+
+let waktuImsak = "--:--";
+
+let beepDone = {};
+
+let adzanDone = {};
+
+let tanggalTerakhir = "";
+
+
+// ======================================================
+// AUDIO ENGINE
+// ======================================================
+
+let audioCtx = null;
+let gainNode = null;
+
 
 function initAudio(){
-audioCtx = new AudioContext()
 
-gainNode = audioCtx.createGain()
-gainNode.gain.value = localStorage.getItem("volume") || 1
-gainNode.connect(audioCtx.destination)
+    if(audioCtx)
+        return;
 
-document.getElementById("volume").value = gainNode.gain.value
-updateVolText()
+    audioCtx =
+        new (
+            window.AudioContext ||
+            window.webkitAudioContext
+        )();
+
+    gainNode =
+        audioCtx.createGain();
+
+    gainNode.gain.value =
+        Number(
+            localStorage.getItem("volume") || 1
+        );
+
+    gainNode.connect(
+        audioCtx.destination
+    );
+
+    document.getElementById("volume").value =
+        gainNode.gain.value;
+
+    updateVolText();
 }
 
-// ================= BEEP HALUS =================
+
+document.addEventListener("click",()=>{
+
+    initAudio();
+
+    if(
+        audioCtx &&
+        audioCtx.state === "suspended"
+    ){
+
+        audioCtx.resume();
+
+    }
+
+});
+
+
+// ======================================================
+// BEEP
+// ======================================================
+
 function beep(freq,dur){
 
-let osc = audioCtx.createOscillator()
-let gain = audioCtx.createGain()
+    if(!audioCtx || !gainNode)
+        return;
 
-osc.type="sine"
-osc.frequency.value=freq
+    let osc =
+        audioCtx.createOscillator();
 
-gain.gain.setValueAtTime(0, audioCtx.currentTime)
-gain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02)
-gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur/1000)
+    let gain =
+        audioCtx.createGain();
 
-osc.connect(gain)
-gain.connect(gainNode)
 
-osc.start()
-osc.stop(audioCtx.currentTime + dur/1000)
+    osc.type = "sine";
+
+    osc.frequency.value = freq;
+
+
+    gain.gain.setValueAtTime(
+        0,
+        audioCtx.currentTime
+    );
+
+
+    gain.gain.linearRampToValueAtTime(
+        1,
+        audioCtx.currentTime + 0.02
+    );
+
+
+    gain.gain.linearRampToValueAtTime(
+        0,
+        audioCtx.currentTime + dur/1000
+    );
+
+
+    osc.connect(gain);
+
+    gain.connect(gainNode);
+
+    osc.start();
+
+
+    osc.stop(
+        audioCtx.currentTime + dur/1000
+    );
 
 }
 
-// ================= POLA BEEP =================
+
 function beepPendek(){
-setTimeout(()=>beep(1000,300),0)
-setTimeout(()=>beep(1000,300),400)
-setTimeout(()=>beep(1000,300),800)
+
+    setTimeout(
+        ()=>beep(1000,300),
+        0
+    );
+
+    setTimeout(
+        ()=>beep(1000,300),
+        400
+    );
+
+    setTimeout(
+        ()=>beep(1000,300),
+        800
+    );
+
 }
+
 
 function beepPanjang(){
-beep(900,4000)
+
+    beep(900,4000);
+
 }
 
-// ================= JADWAL =================
-let jadwal=[
-{nama:"Subuh",waktu:"04:19"},
-{nama:"Dzuhur",waktu:"11:36"},
-{nama:"Ashar",waktu:"14:56"},
-{nama:"Maghrib",waktu:"17:33"},
-{nama:"Isya",waktu:"18:43"}
-]
 
-let beepDone={}
-let adzanDone={}
+// ======================================================
+// AMBIL DATA TANGGAL
+// ======================================================
 
-// ================= CEK ADZAN =================
+function ambilDataTanggal(){
+
+    let now =
+        new Date();
+
+
+    let tahun =
+        now.getFullYear();
+
+
+    let bulan =
+        now.getMonth()+1;
+
+
+    let tanggal =
+        now.getDate();
+
+
+    // Agustus 2026
+
+    if(
+        tahun === 2026 &&
+        bulan === 8 &&
+        DATA_AGUSTUS_2026[tanggal]
+    ){
+
+        return DATA_AGUSTUS_2026[tanggal];
+
+    }
+
+
+    // Jika tanggal tidak ada
+    // gunakan PATOKAN
+
+    return [
+
+        PATOKAN.imsak,
+
+        PATOKAN.subuh,
+
+        PATOKAN.dzuhur,
+
+        PATOKAN.ashar,
+
+        PATOKAN.maghrib,
+
+        PATOKAN.isya
+
+    ];
+
+}
+
+
+// ======================================================
+// AMBIL JADWAL SHOLAT
+// DATA LANGSUNG DIPAKAI
+// TIDAK ADA KOREKSI
+// ======================================================
+
+function ambilJadwalSholat(){
+
+    let data =
+        ambilDataTanggal();
+
+
+    // Imsak
+
+    waktuImsak =
+        data[0];
+
+
+    jadwal = [
+
+        {
+            nama:"Subuh",
+            waktu:data[1]
+        },
+
+        {
+            nama:"Dzuhur",
+            waktu:data[2]
+        },
+
+        {
+            nama:"Ashar",
+            waktu:data[3]
+        },
+
+        {
+            nama:"Maghrib",
+            waktu:data[4]
+        },
+
+        {
+            nama:"Isya",
+            waktu:data[5]
+        }
+
+    ];
+
+
+    // ==================================================
+    // KHUSUS HARI JUMAT
+    // ==================================================
+
+    if(
+        new Date().getDay() === 5
+    ){
+
+        jadwal =
+            jadwal.map(item=>{
+
+                if(
+                    item.nama === "Dzuhur"
+                ){
+
+                    return {
+
+                        nama:"Jumatan",
+
+                        waktu:"11:35",
+
+                        isJumat:true
+
+                    };
+
+                }
+
+                return item;
+
+            });
+
+    }
+
+
+    beepDone = {};
+
+    adzanDone = {};
+
+
+    tanggalTerakhir =
+        new Date().toDateString();
+
+
+    tampilkanJadwal();
+
+}
+
+
+// ======================================================
+// WAKTU HARI INI
+// ======================================================
+
+function waktuHariIni(waktu){
+
+    let p =
+        waktu.split(":").map(Number);
+
+
+    let d =
+        new Date();
+
+
+    d.setHours(
+        p[0],
+        p[1],
+        0,
+        0
+    );
+
+
+    return d;
+
+}
+
+
+// ======================================================
+// TAMPILKAN JADWAL
+// ======================================================
+
+function tampilkanJadwal(){
+
+    let now =
+        new Date();
+
+
+    let daftar = [];
+
+
+    jadwal.forEach(item=>{
+
+        // Jumatan hanya tampil
+        // sebelum pukul 11:35
+
+        if(item.isJumat){
+
+            let waktu =
+                waktuHariIni(
+                    item.waktu
+                );
+
+
+            if(now >= waktu){
+
+                return;
+
+            }
+
+        }
+
+
+        daftar.push(item);
+
+    });
+
+
+    let html =
+
+        "Imsak " +
+        waktuImsak +
+        " | ";
+
+
+    if(daftar[0]){
+
+        html +=
+
+            daftar[0].nama +
+            " " +
+            daftar[0].waktu;
+
+    }
+
+
+    if(daftar[1]){
+
+        html +=
+
+            " | " +
+            daftar[1].nama +
+            " " +
+            daftar[1].waktu;
+
+    }
+
+
+    html += "<br>";
+
+
+    if(daftar[2]){
+
+        html +=
+
+            daftar[2].nama +
+            " " +
+            daftar[2].waktu;
+
+    }
+
+
+    if(daftar[3]){
+
+        html +=
+
+            " | " +
+            daftar[3].nama +
+            " " +
+            daftar[3].waktu;
+
+    }
+
+
+    if(daftar[4]){
+
+        html +=
+
+            " | " +
+            daftar[4].nama +
+            " " +
+            daftar[4].waktu;
+
+    }
+
+
+    document.getElementById(
+        "jadwal"
+    ).innerHTML = html;
+
+}
+
+
+// ======================================================
+// CEK ADZAN
+// ======================================================
+
 function cekAdzan(){
 
-let now=new Date()
+    if(!jadwal.length)
+        return;
 
-jadwal.forEach(item=>{
 
-let [j,m]=item.waktu.split(":").map(Number)
+    let now =
+        new Date();
 
-if(now.getSeconds()==10){
-beepDone[item.nama]=false
-adzanDone[item.nama]=false
+
+    jadwal.forEach(item=>{
+
+        let p =
+            item.waktu
+            .split(":")
+            .map(Number);
+
+
+        let jam =
+            p[0];
+
+
+        let menit =
+            p[1];
+
+
+        // 3 detik sebelum
+
+        if(
+
+            now.getHours() === jam &&
+
+            now.getMinutes() === menit - 1 &&
+
+            now.getSeconds() === 57 &&
+
+            !beepDone[item.nama]
+
+        ){
+
+            beepDone[item.nama] = true;
+
+            beepPendek();
+
+        }
+
+
+        // Tepat waktu
+
+        if(
+
+            now.getHours() === jam &&
+
+            now.getMinutes() === menit &&
+
+            now.getSeconds() === 0 &&
+
+            !adzanDone[item.nama]
+
+        ){
+
+            adzanDone[item.nama] = true;
+
+            beepPanjang();
+
+            tampilAdzan(item.nama);
+
+        }
+
+    });
+
 }
 
-if(now.getHours()==j && now.getMinutes()==m-1 && now.getSeconds()==57 && !beepDone[item.nama]){
-beepDone[item.nama]=true
-beepPendek()
-}
 
-if(now.getHours()==j && now.getMinutes()==m && now.getSeconds()==0 && !adzanDone[item.nama]){
-adzanDone[item.nama]=true
-beepPanjang()
-tampilAdzan(item.nama)
-}
+// ======================================================
+// TAMPIL ADZAN
+// ======================================================
 
-})
-
-}
-
-// ================= ADZAN TEXT =================
 function tampilAdzan(nama){
-let adzan=document.getElementById("adzan")
-adzan.innerHTML="WAKTU ADZAN "+nama.toUpperCase()
-adzan.style.display="block"
-setTimeout(()=>adzan.style.display="none",10000)
+
+    let el =
+        document.getElementById(
+            "adzan"
+        );
+
+
+    el.innerHTML =
+        "WAKTU ADZAN " +
+        nama.toUpperCase();
+
+
+    el.style.display =
+        "block";
+
+
+    setTimeout(
+        ()=>{
+
+            el.style.display =
+                "none";
+
+        },
+        10000
+    );
+
 }
 
-// ================= JAM =================
+
+// ======================================================
+// JAM
+// ======================================================
+
 function updateJam(){
-let now=new Date()
-document.getElementById("jam").innerHTML=
-now.toLocaleTimeString()
+
+    let now =
+        new Date();
+
+
+    document.getElementById(
+        "jam"
+    ).innerHTML =
+
+        now.toLocaleTimeString(
+            "id-ID",
+            {
+                hour:"2-digit",
+                minute:"2-digit",
+                second:"2-digit"
+            }
+        );
+
 }
 
-// ================= TANGGAL =================
+
+// ======================================================
+// TANGGAL + HIJRIAH
+// ======================================================
+
 function updateTanggal(){
-let now=new Date()
 
-let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{
-day:'numeric',month:'long',year:'numeric'
-}).format(now)
+    let now =
+        new Date();
 
-let masehi=now.toLocaleDateString('id-ID',{
-weekday:'long',day:'numeric',month:'long',year:'numeric'
-})
 
-document.getElementById("tanggal").innerHTML=masehi+" | "+hijri
+    // Koreksi Hijriah -1 hari
+    // sesuai permintaan sebelumnya
+
+    let hijriDate =
+        new Date(now);
+
+
+    hijriDate.setDate(
+        hijriDate.getDate() - 1
+    );
+
+
+    let hijri =
+        new Intl.DateTimeFormat(
+            "id-TN-u-ca-islamic",
+            {
+                day:"numeric",
+                month:"long",
+                year:"numeric"
+            }
+        ).format(hijriDate);
+
+
+    let masehi =
+        now.toLocaleDateString(
+            "id-ID",
+            {
+                weekday:"long",
+                day:"numeric",
+                month:"long",
+                year:"numeric"
+            }
+        );
+
+
+    document.getElementById(
+        "tanggal"
+    ).innerHTML =
+
+        masehi +
+        " | " +
+        hijri;
+
 }
 
-// ================= PASARAN =================
+
+// ======================================================
+// PASARAN JAWA
+// ======================================================
+
 function getPasaranJawa(){
-let now=new Date()
-let pasaran=["Legi","Pahing","Pon","Wage","Kliwon"]
-let tglAwal=new Date(1970,0,1)
-let selisih=Math.floor((now-tglAwal)/(1000*60*60*24))
-let index=(selisih+3)%5
-document.getElementById("kalenderJawa").innerHTML="Pasaran: "+pasaran[index]
+
+    let now =
+        new Date();
+
+
+    let pasaran = [
+
+        "Legi",
+        "Pahing",
+        "Pon",
+        "Wage",
+        "Kliwon"
+
+    ];
+
+
+    let tglAwal =
+        new Date(
+            1970,
+            0,
+            1
+        );
+
+
+    let selisih =
+        Math.floor(
+            (now - tglAwal) /
+            (1000*60*60*24)
+        );
+
+
+    let index =
+        (selisih + 3) % 5;
+
+
+    document.getElementById(
+        "kalenderJawa"
+    ).innerHTML =
+
+        "Pasaran: " +
+        pasaran[index];
+
 }
 
-// ================= COUNTDOWN =================
+
+// ======================================================
+// COUNTDOWN
+// ======================================================
+
 function updateCountdown(){
 
-let now=new Date()
-let next=null,nama=""
+    if(!jadwal.length)
+        return;
 
-for(let j of jadwal){
-let t=j.waktu.split(":")
-let w=new Date()
-w.setHours(t[0],t[1],0)
 
-if(w>now){next=w;nama=j.nama;break}
+    let now =
+        new Date();
+
+
+    let next =
+        null;
+
+
+    let nama =
+        "";
+
+
+    for(
+        let item of jadwal
+    ){
+
+        let waktu =
+            waktuHariIni(
+                item.waktu
+            );
+
+
+        // Jumatan sudah lewat
+
+        if(
+            item.isJumat &&
+            now >= waktu
+        ){
+
+            continue;
+
+        }
+
+
+        if(waktu > now){
+
+            next =
+                waktu;
+
+            nama =
+                item.nama;
+
+            break;
+
+        }
+
+    }
+
+
+    // Jika semua jadwal hari ini
+    // sudah lewat
+
+    if(!next){
+
+        let pertama =
+            jadwal[0];
+
+
+        next =
+            waktuHariIni(
+                pertama.waktu
+            );
+
+
+        next.setDate(
+            next.getDate()+1
+        );
+
+
+        nama =
+            pertama.nama;
+
+    }
+
+
+    let selisih =
+        next - now;
+
+
+    let jam =
+        Math.floor(
+            selisih / 3600000
+        );
+
+
+    let menit =
+        Math.floor(
+            (selisih % 3600000) /
+            60000
+        );
+
+
+    let detik =
+        Math.floor(
+            (selisih % 60000) /
+            1000
+        );
+
+
+    document.getElementById(
+        "countdown"
+    ).innerHTML =
+
+        "Menuju " +
+        nama +
+        " " +
+
+        String(jam)
+            .padStart(2,"0") +
+
+        ":" +
+
+        String(menit)
+            .padStart(2,"0") +
+
+        ":" +
+
+        String(detik)
+            .padStart(2,"0");
+
 }
 
-if(!next){
-let t=jadwal[0].waktu.split(":")
-next=new Date()
-next.setDate(next.getDate()+1)
-next.setHours(t[0],t[1],0)
-nama=jadwal[0].nama
-}
 
-let s=next-now
+// ======================================================
+// CEK JUMAT
+// ======================================================
 
-let jam=Math.floor(s/3600000)
-let menit=Math.floor((s%3600000)/60000)
-let detik=Math.floor((s%60000)/1000)
+function cekJumat(){
 
-document.getElementById("countdown").innerHTML=
-"Menuju "+nama+" "+jam+":"+menit+":"+detik
+    if(
+        new Date().getDay() === 5
+    ){
+
+        tampilkanJadwal();
+
+    }
 
 }
 
-// ================= AUDIO SCHEDULER =================
-const dayNames=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"]
-const audioBlocksDiv=document.getElementById("audioBlocks")
-const audios=[]
 
-for(let i=0;i<5;i++){
+// ======================================================
+// CEK GANTI HARI
+// ======================================================
 
-const div=document.createElement("div")
+function cekPergantianHari(){
 
-div.innerHTML=`
+    let hari =
+        new Date().toDateString();
+
+
+    if(
+        hari !== tanggalTerakhir
+    ){
+
+        ambilJadwalSholat();
+
+        updateTanggal();
+
+    }
+
+}
+
+
+// ======================================================
+// AUDIO SCHEDULER
+// ======================================================
+
+const audioBlocksDiv =
+    document.getElementById(
+        "audioBlocks"
+    );
+
+
+const audios = [];
+
+
+for(
+    let i=0;
+    i<5;
+    i++
+){
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.innerHTML = `
+
 <hr>
-<input type="file" class="audioFile" accept=".mp3"><br>
-<input type="time" class="timeInput${i}" step="1">
-<audio id="playerExtra${i}"></audio>
-`
 
-audioBlocksDiv.appendChild(div)
+<input
+    type="file"
+    class="audioFile"
+    accept=".mp3"
+>
 
-audios.push({
-player:document.getElementById(`playerExtra${i}`),
-file:null,
-time:null
-})
+<br>
+
+<input
+    type="time"
+    class="timeInput${i}"
+    step="1"
+>
+
+<audio
+    id="playerExtra${i}"
+></audio>
+
+`;
+
+
+    audioBlocksDiv.appendChild(div);
+
+
+    audios.push({
+
+        player:
+            document.getElementById(
+                `playerExtra${i}`
+            ),
+
+        file:null,
+
+        time:null
+
+    });
 
 }
 
-document.querySelectorAll(".audioFile").forEach((input,idx)=>{
-input.addEventListener("change",e=>{
-audios[idx].file=URL.createObjectURL(e.target.files[0])
-audios[idx].player.src=audios[idx].file
-})
-})
 
-for(let i=0;i<5;i++){
-const timeInput=document.querySelector(`.timeInput${i}`)
-timeInput.addEventListener("change",e=>{
-const p=e.target.value.split(":").map(Number)
-audios[i].time={hour:p[0],minute:p[1],second:p[2]||0}
-})
+// ======================================================
+// FILE AUDIO
+// ======================================================
+
+document
+.querySelectorAll(".audioFile")
+.forEach(
+(input,index)=>{
+
+    input.addEventListener(
+        "change",
+        e=>{
+
+            if(
+                !e.target.files[0]
+            )
+                return;
+
+
+            audios[index].file =
+                URL.createObjectURL(
+                    e.target.files[0]
+                );
+
+
+            audios[index].player.src =
+                audios[index].file;
+
+        }
+    );
+
+});
+
+
+// ======================================================
+// WAKTU AUDIO
+// ======================================================
+
+for(
+    let i=0;
+    i<5;
+    i++
+){
+
+    document
+    .querySelector(
+        `.timeInput${i}`
+    )
+    .addEventListener(
+        "change",
+        e=>{
+
+            let p =
+                e.target.value
+                .split(":")
+                .map(Number);
+
+
+            audios[i].time = {
+
+                hour:p[0],
+
+                minute:p[1],
+
+                second:
+                    p[2] || 0
+
+            };
+
+        }
+    );
+
 }
+
+
+// ======================================================
+// CEK AUDIO
+// ======================================================
 
 function cekAudioTambahan(){
 
-let now=new Date()
+    let now =
+        new Date();
 
-audios.forEach(audio=>{
 
-if(!audio.file||!audio.time)return
+    audios.forEach(
+        audio=>{
 
-if(
-now.getHours()==audio.time.hour &&
-now.getMinutes()==audio.time.minute &&
-now.getSeconds()==audio.time.second
-){
-audio.player.play()
+            if(
+                !audio.file ||
+                !audio.time
+            )
+                return;
+
+
+            if(
+
+                now.getHours() ===
+                audio.time.hour &&
+
+                now.getMinutes() ===
+                audio.time.minute &&
+
+                now.getSeconds() ===
+                audio.time.second
+
+            ){
+
+                audio.player.currentTime =
+                    0;
+
+
+                audio.player
+                    .play()
+                    .catch(
+                        ()=>{}
+                    );
+
+            }
+
+        }
+    );
+
 }
 
-})
 
-}
+// ======================================================
+// VOLUME
+// ======================================================
 
-// ================= VOLUME =================
-let volSlider=document.getElementById("volume")
+const volSlider =
+    document.getElementById(
+        "volume"
+    );
+
 
 function updateVolText(){
-document.getElementById("volText").innerText=
-Math.round(volSlider.value*100)+"%"
+
+    document.getElementById(
+        "volText"
+    ).innerText =
+
+        Math.round(
+            Number(
+                volSlider.value
+            ) * 100
+        ) +
+        "%";
+
 }
 
-volSlider.oninput=function(){
-gainNode.gain.value=this.value
-localStorage.setItem("volume",this.value)
-updateVolText()
-}
 
-// ================= START AUTO =================
+volSlider.oninput =
+function(){
+
+    if(gainNode){
+
+        gainNode.gain.value =
+            this.value;
+
+    }
+
+
+    localStorage.setItem(
+        "volume",
+        this.value
+    );
+
+
+    updateVolText();
+
+};
+
+
+// ======================================================
+// SETTING
+// ======================================================
+
+document.getElementById(
+    "settingBtn"
+).onclick =
+function(){
+
+    let panel =
+        document.getElementById(
+            "audioPanel"
+        );
+
+
+    panel.style.display =
+
+        panel.style.display === "none"
+
+        ?
+
+        "block"
+
+        :
+
+        "none";
+
+};
+
+
+// ======================================================
+// START SYSTEM
+// ======================================================
+
 function startSystem(){
 
-initAudio()
+    updateJam();
 
-updateJam()
-updateTanggal()
-getPasaranJawa()
+    updateTanggal();
 
-setInterval(updateJam,1000)
-setInterval(updateTanggal,60000)
-setInterval(getPasaranJawa,60000)
-setInterval(updateCountdown,1000)
-setInterval(cekAdzan,1000)
-setInterval(cekAudioTambahan,1000)
+    getPasaranJawa();
+
+    ambilJadwalSholat();
+
+
+    setInterval(
+        updateJam,
+        1000
+    );
+
+
+    setInterval(
+        updateTanggal,
+        60000
+    );
+
+
+    setInterval(
+        getPasaranJawa,
+        60000
+    );
+
+
+    setInterval(
+        updateCountdown,
+        1000
+    );
+
+
+    setInterval(
+        cekAdzan,
+        1000
+    );
+
+
+    setInterval(
+        cekAudioTambahan,
+        1000
+    );
+
+
+    setInterval(
+        cekPergantianHari,
+        1000
+    );
+
+
+    setInterval(
+        cekJumat,
+        1000
+    );
 
 }
 
-window.onload=startSystem
 
-// ================= SETTING =================
-document.getElementById("settingBtn").onclick=()=>{
-let panel=document.getElementById("audioPanel")
-panel.style.display=panel.style.display=="none"?"block":"none"
-}
+window.onload =
+    startSystem;
 
 </script>
 
