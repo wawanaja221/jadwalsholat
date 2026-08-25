@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Jadwal Sholat + Audio Scheduler</title>
 
@@ -55,44 +55,114 @@ body{
     font-size:30px;
     color:yellow;
     margin-top:50px;
-    line-height:1.6;
+    line-height:1.7;
 }
 
 #adzan{
     display:none;
-    position:absolute;
-    top:50%;
+    position:fixed;
+    top:45%;
+    left:0;
     width:100%;
-    font-size:80px;
+    font-size:70px;
     color:lime;
+    z-index:999;
 }
 
 #settingBtn{
     position:fixed;
     bottom:10px;
     right:10px;
-    padding:6px 10px;
+    padding:8px 12px;
     cursor:pointer;
+    font-size:20px;
+    z-index:1001;
 }
 
 #audioPanel{
     display:none;
     position:fixed;
-    bottom:50px;
+    bottom:55px;
     right:10px;
+    width:370px;
+    max-height:80vh;
     background:#111;
-    padding:10px;
+    padding:15px;
     border:1px solid #555;
-    max-height:400px;
     overflow:auto;
     color:white;
+    text-align:left;
+    z-index:1000;
+}
+
+.audioSlot{
+    border:1px solid #444;
+    padding:12px;
+    margin:10px 0;
+    background:#181818;
+}
+
+.audioSlot strong{
+    color:#00ff00;
+    font-size:16px;
+}
+
+.audioSlot input[type="file"]{
+    width:100%;
+    margin-top:8px;
+}
+
+.audioSlot input[type="time"]{
+    margin-top:8px;
+}
+
+.audioSlot button{
+    margin-top:8px;
+    cursor:pointer;
+}
+
+.status{
+    font-size:12px;
+    color:#aaa;
+    margin-top:6px;
+    word-break:break-all;
+}
+
+.autoTime{
+    color:cyan;
+    margin-top:6px;
+    font-size:13px;
+}
+
+.info{
+    color:#888;
+    font-size:12px;
+    margin-top:4px;
+}
+
+#unlock{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    background:#222;
+    color:white;
+    padding:12px;
+    z-index:2000;
+    cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<div id="judul">JADWAL SHOLAT</div>
+<div id="unlock">
+🔊 KLIK SEKALI UNTUK MENGAKTIFKAN AUDIO OTOMATIS
+</div>
+
+<div id="judul">
+JADWAL SHOLAT
+</div>
 
 <div id="tanggal"></div>
 
@@ -116,8 +186,9 @@ Memuat jadwal...
 
 <div id="audioPanel">
 
-<h3>Audio Scheduler</h3>
+<h3>🎵 AUDIO OTOMATIS</h3>
 
+<div>
 Volume:
 <input
     type="range"
@@ -125,9 +196,12 @@ Volume:
     min="0"
     max="2"
     step="0.1"
+    value="1"
 >
+<span id="volText">100%</span>
+</div>
 
-<span id="volText"></span>
+<hr>
 
 <div id="audioBlocks"></div>
 
@@ -136,40 +210,25 @@ Volume:
 
 <script>
 
-// ======================================================
-// KONFIGURASI
-// ======================================================
-
-const KOTA = "Surabaya";
-
-
-// ======================================================
-// PATOKAN
-// ======================================================
+/* =====================================================
+   PATOKAN KALIDAMI
+===================================================== */
 
 const PATOKAN = {
-
-    tanggal:"2026-08-21",
-
     imsak:"04:09",
-
     subuh:"04:19",
-
     dzuhur:"11:36",
-
     ashar:"14:56",
-
     maghrib:"17:33",
-
     isya:"18:43"
-
 };
 
 
-// ======================================================
-// DATA JADWAL SURABAYA AGUSTUS 2026
-// SESUAI TABEL YANG KAMU KASIH
-// ======================================================
+/* =====================================================
+   DATA SURABAYA AGUSTUS 2026
+
+   [Imsak, Subuh, Dzuhur, Ashar, Maghrib, Isya]
+===================================================== */
 
 const DATA_AGUSTUS_2026 = {
 
@@ -217,28 +276,270 @@ const DATA_AGUSTUS_2026 = {
 };
 
 
-// ======================================================
-// VARIABLE
-// ======================================================
+/* =====================================================
+   VARIABEL
+===================================================== */
 
 let jadwal = [];
 
 let waktuImsak = "--:--";
 
-let beepDone = {};
-
-let adzanDone = {};
-
 let tanggalTerakhir = "";
 
-
-// ======================================================
-// AUDIO ENGINE
-// ======================================================
-
 let audioCtx = null;
+
 let gainNode = null;
 
+let audioUnlocked = false;
+
+let activeAudio = null;
+
+let playedToday = {};
+
+
+/* =====================================================
+   INDEXED DB
+===================================================== */
+
+let db = null;
+
+
+function openDatabase(){
+
+    return new Promise((resolve,reject)=>{
+
+        const request =
+            indexedDB.open(
+                "JadwalSholatAudioDB",
+                1
+            );
+
+        request.onupgradeneeded =
+        function(e){
+
+            const database =
+                e.target.result;
+
+            if(
+                !database.objectStoreNames.contains(
+                    "audio"
+                )
+            ){
+
+                database.createObjectStore(
+                    "audio",
+                    {
+                        keyPath:"id"
+                    }
+                );
+
+            }
+
+        };
+
+        request.onsuccess =
+        function(e){
+
+            db =
+                e.target.result;
+
+            resolve();
+
+        };
+
+        request.onerror =
+        function(){
+
+            reject(request.error);
+
+        };
+
+    });
+
+}
+
+
+function saveAudio(id,name,file){
+
+    return new Promise((resolve,reject)=>{
+
+        const tx =
+            db.transaction(
+                "audio",
+                "readwrite"
+            );
+
+        tx.objectStore("audio").put({
+
+            id:id,
+
+            name:name,
+
+            file:file
+
+        });
+
+        tx.oncomplete =
+            ()=>resolve();
+
+        tx.onerror =
+            ()=>reject(tx.error);
+
+    });
+
+}
+
+
+function getAudio(id){
+
+    return new Promise((resolve,reject)=>{
+
+        const tx =
+            db.transaction(
+                "audio",
+                "readonly"
+            );
+
+        const request =
+            tx.objectStore("audio").get(id);
+
+        request.onsuccess =
+            ()=>resolve(request.result);
+
+        request.onerror =
+            ()=>reject(request.error);
+
+    });
+
+}
+
+
+function deleteAudio(id){
+
+    return new Promise((resolve,reject)=>{
+
+        const tx =
+            db.transaction(
+                "audio",
+                "readwrite"
+            );
+
+        tx.objectStore("audio").delete(id);
+
+        tx.oncomplete =
+            ()=>resolve();
+
+        tx.onerror =
+            ()=>reject(tx.error);
+
+    });
+
+}
+
+
+/* =====================================================
+   AUDIO SETTINGS
+===================================================== */
+
+let audioSettings =
+    JSON.parse(
+        localStorage.getItem(
+            "audioSettings"
+        ) || "{}"
+    );
+
+
+/*
+   SLOT:
+
+   1. Subuh
+   2. Maghrib biasa
+   3. Yasin Kamis saat Maghrib
+   4. Jumatan
+   5-9 Azan
+   10-11 Audio manual
+*/
+
+const AUDIO_SLOTS = [
+
+    {
+        id:"subuh",
+        nama:"Audio Subuh",
+        tipe:"sholat",
+        target:"Subuh"
+    },
+
+    {
+        id:"maghrib",
+        nama:"Audio Maghrib Biasa",
+        tipe:"maghrib"
+    },
+
+    {
+        id:"yasin",
+        nama:"Yasin / Malam Jumat",
+        tipe:"yasin"
+    },
+
+    {
+        id:"jumatan",
+        nama:"Audio Jumatan",
+        tipe:"jumatan"
+    },
+
+    {
+        id:"azanSubuh",
+        nama:"Azan Subuh",
+        tipe:"sholat",
+        target:"Subuh"
+    },
+
+    {
+        id:"azanDzuhur",
+        nama:"Azan Dzuhur",
+        tipe:"sholat",
+        target:"Dzuhur"
+    },
+
+    {
+        id:"azanAshar",
+        nama:"Azan Ashar",
+        tipe:"sholat",
+        target:"Ashar"
+    },
+
+    {
+        id:"azanMaghrib",
+        nama:"Azan Maghrib",
+        tipe:"sholat",
+        target:"Maghrib"
+    },
+
+    {
+        id:"azanIsya",
+        nama:"Azan Isya",
+        tipe:"sholat",
+        target:"Isya"
+    },
+
+    {
+        id:"manual1",
+        nama:"Audio Manual 1",
+        tipe:"manual"
+    },
+
+    {
+        id:"manual2",
+        nama:"Audio Manual 2",
+        tipe:"manual"
+    }
+
+];
+
+
+/* =====================================================
+   AUDIO CONTEXT
+===================================================== */
 
 function initAudio(){
 
@@ -256,144 +557,83 @@ function initAudio(){
 
     gainNode.gain.value =
         Number(
-            localStorage.getItem("volume") || 1
+            localStorage.getItem(
+                "volume"
+            ) || 1
         );
 
     gainNode.connect(
         audioCtx.destination
     );
 
-    document.getElementById("volume").value =
-        gainNode.gain.value;
-
-    updateVolText();
 }
 
 
-document.addEventListener("click",()=>{
+async function unlockAudio(){
 
     initAudio();
 
-    if(
-        audioCtx &&
-        audioCtx.state === "suspended"
-    ){
+    try{
 
-        audioCtx.resume();
+        if(
+            audioCtx.state ===
+            "suspended"
+        ){
+
+            await audioCtx.resume();
+
+        }
+
+        audioUnlocked = true;
+
+        document.getElementById(
+            "unlock"
+        ).style.display =
+            "none";
+
+    }
+    catch(e){
+
+        console.log(e);
 
     }
 
-});
-
-
-// ======================================================
-// BEEP
-// ======================================================
-
-function beep(freq,dur){
-
-    if(!audioCtx || !gainNode)
-        return;
-
-    let osc =
-        audioCtx.createOscillator();
-
-    let gain =
-        audioCtx.createGain();
-
-
-    osc.type = "sine";
-
-    osc.frequency.value = freq;
-
-
-    gain.gain.setValueAtTime(
-        0,
-        audioCtx.currentTime
-    );
-
-
-    gain.gain.linearRampToValueAtTime(
-        1,
-        audioCtx.currentTime + 0.02
-    );
-
-
-    gain.gain.linearRampToValueAtTime(
-        0,
-        audioCtx.currentTime + dur/1000
-    );
-
-
-    osc.connect(gain);
-
-    gain.connect(gainNode);
-
-    osc.start();
-
-
-    osc.stop(
-        audioCtx.currentTime + dur/1000
-    );
-
 }
 
 
-function beepPendek(){
-
-    setTimeout(
-        ()=>beep(1000,300),
-        0
-    );
-
-    setTimeout(
-        ()=>beep(1000,300),
-        400
-    );
-
-    setTimeout(
-        ()=>beep(1000,300),
-        800
-    );
-
-}
+document.getElementById(
+    "unlock"
+).addEventListener(
+    "click",
+    unlockAudio
+);
 
 
-function beepPanjang(){
-
-    beep(900,4000);
-
-}
-
-
-// ======================================================
-// AMBIL DATA TANGGAL
-// ======================================================
+/* =====================================================
+   DATA JADWAL HARI INI
+===================================================== */
 
 function ambilDataTanggal(){
 
-    let now =
+    const now =
         new Date();
 
-
-    let tahun =
+    const tahun =
         now.getFullYear();
 
-
-    let bulan =
+    const bulan =
         now.getMonth()+1;
 
-
-    let tanggal =
+    const tanggal =
         now.getDate();
 
 
-    // Agustus 2026
-
     if(
+
         tahun === 2026 &&
         bulan === 8 &&
         DATA_AGUSTUS_2026[tanggal]
+
     ){
 
         return DATA_AGUSTUS_2026[tanggal];
@@ -401,21 +641,13 @@ function ambilDataTanggal(){
     }
 
 
-    // Jika tanggal tidak ada
-    // gunakan PATOKAN
-
     return [
 
         PATOKAN.imsak,
-
         PATOKAN.subuh,
-
         PATOKAN.dzuhur,
-
         PATOKAN.ashar,
-
         PATOKAN.maghrib,
-
         PATOKAN.isya
 
     ];
@@ -423,19 +655,15 @@ function ambilDataTanggal(){
 }
 
 
-// ======================================================
-// AMBIL JADWAL SHOLAT
-// DATA LANGSUNG DIPAKAI
-// TIDAK ADA KOREKSI
-// ======================================================
+/* =====================================================
+   BUAT JADWAL
+===================================================== */
 
 function ambilJadwalSholat(){
 
-    let data =
+    const data =
         ambilDataTanggal();
 
-
-    // Imsak
 
     waktuImsak =
         data[0];
@@ -471,45 +699,6 @@ function ambilJadwalSholat(){
     ];
 
 
-    // ==================================================
-    // KHUSUS HARI JUMAT
-    // ==================================================
-
-    if(
-        new Date().getDay() === 5
-    ){
-
-        jadwal =
-            jadwal.map(item=>{
-
-                if(
-                    item.nama === "Dzuhur"
-                ){
-
-                    return {
-
-                        nama:"Jumatan",
-
-                        waktu:"11:35",
-
-                        isJumat:true
-
-                    };
-
-                }
-
-                return item;
-
-            });
-
-    }
-
-
-    beepDone = {};
-
-    adzanDone = {};
-
-
     tanggalTerakhir =
         new Date().toDateString();
 
@@ -519,19 +708,17 @@ function ambilJadwalSholat(){
 }
 
 
-// ======================================================
-// WAKTU HARI INI
-// ======================================================
+/* =====================================================
+   KONVERSI WAKTU
+===================================================== */
 
 function waktuHariIni(waktu){
 
-    let p =
+    const p =
         waktu.split(":").map(Number);
 
-
-    let d =
+    const d =
         new Date();
-
 
     d.setHours(
         p[0],
@@ -540,50 +727,52 @@ function waktuHariIni(waktu){
         0
     );
 
-
     return d;
 
 }
 
 
-// ======================================================
-// TAMPILKAN JADWAL
-// ======================================================
+/* =====================================================
+   CARI WAKTU SHOLAT
+===================================================== */
+
+function getWaktuSholat(nama){
+
+    const item =
+        jadwal.find(
+            x=>x.nama === nama
+        );
+
+    if(item)
+        return item.waktu;
+
+    return null;
+
+}
+
+
+/* =====================================================
+   JADWAL JUMATAN
+===================================================== */
+
+function getWaktuJumatan(){
+
+    return "11:33";
+
+}
+
+
+/* =====================================================
+   TAMPIL JADWAL
+===================================================== */
 
 function tampilkanJadwal(){
 
-    let now =
+    const now =
         new Date();
 
-
-    let daftar = [];
-
-
-    jadwal.forEach(item=>{
-
-        // Jumatan hanya tampil
-        // sebelum pukul 11:35
-
-        if(item.isJumat){
-
-            let waktu =
-                waktuHariIni(
-                    item.waktu
-                );
-
-
-            if(now >= waktu){
-
-                return;
-
-            }
-
-        }
-
-
-        daftar.push(item);
-
-    });
+    const jumat =
+        now.getDay() === 5;
 
 
     let html =
@@ -593,25 +782,23 @@ function tampilkanJadwal(){
         " | ";
 
 
-    if(daftar[0]){
+    if(jumat){
 
         html +=
-
-            daftar[0].nama +
-            " " +
-            daftar[0].waktu;
+            "Subuh " +
+            jadwal[0].waktu +
+            " | " +
+            "Jumatan 11:33";
 
     }
-
-
-    if(daftar[1]){
+    else{
 
         html +=
-
+            "Subuh " +
+            jadwal[0].waktu +
             " | " +
-            daftar[1].nama +
-            " " +
-            daftar[1].waktu;
+            "Dzuhur " +
+            jadwal[1].waktu;
 
     }
 
@@ -619,175 +806,75 @@ function tampilkanJadwal(){
     html += "<br>";
 
 
-    if(daftar[2]){
+    html +=
 
-        html +=
+        "Ashar " +
+        jadwal[2].waktu +
+        " | " +
 
-            daftar[2].nama +
-            " " +
-            daftar[2].waktu;
+        "Maghrib " +
+        jadwal[3].waktu +
+        " | " +
 
-    }
+        "Isya " +
+        jadwal[4].waktu;
 
 
-    if(daftar[3]){
+    /*
+       Setelah Jumat 11:35,
+       Jumatan hilang.
+       Dzuhur juga tidak dimunculkan lagi
+       pada hari Jumat.
+    */
 
-        html +=
+    if(
+        jumat &&
+        now >= waktuHariIni("11:35")
+    ){
 
+        html =
+
+            "Imsak " +
+            waktuImsak +
             " | " +
-            daftar[3].nama +
-            " " +
-            daftar[3].waktu;
 
-    }
+            "Subuh " +
+            jadwal[0].waktu +
+            "<br>" +
 
-
-    if(daftar[4]){
-
-        html +=
-
+            "Ashar " +
+            jadwal[2].waktu +
             " | " +
-            daftar[4].nama +
-            " " +
-            daftar[4].waktu;
+
+            "Maghrib " +
+            jadwal[3].waktu +
+            " | " +
+
+            "Isya " +
+            jadwal[4].waktu;
 
     }
 
 
     document.getElementById(
         "jadwal"
-    ).innerHTML = html;
+    ).innerHTML =
+        html;
 
 }
 
 
-// ======================================================
-// CEK ADZAN
-// ======================================================
-
-function cekAdzan(){
-
-    if(!jadwal.length)
-        return;
-
-
-    let now =
-        new Date();
-
-
-    jadwal.forEach(item=>{
-
-        let p =
-            item.waktu
-            .split(":")
-            .map(Number);
-
-
-        let jam =
-            p[0];
-
-
-        let menit =
-            p[1];
-
-
-        // 3 detik sebelum
-
-        if(
-
-            now.getHours() === jam &&
-
-            now.getMinutes() === menit - 1 &&
-
-            now.getSeconds() === 57 &&
-
-            !beepDone[item.nama]
-
-        ){
-
-            beepDone[item.nama] = true;
-
-            beepPendek();
-
-        }
-
-
-        // Tepat waktu
-
-        if(
-
-            now.getHours() === jam &&
-
-            now.getMinutes() === menit &&
-
-            now.getSeconds() === 0 &&
-
-            !adzanDone[item.nama]
-
-        ){
-
-            adzanDone[item.nama] = true;
-
-            beepPanjang();
-
-            tampilAdzan(item.nama);
-
-        }
-
-    });
-
-}
-
-
-// ======================================================
-// TAMPIL ADZAN
-// ======================================================
-
-function tampilAdzan(nama){
-
-    let el =
-        document.getElementById(
-            "adzan"
-        );
-
-
-    el.innerHTML =
-        "WAKTU ADZAN " +
-        nama.toUpperCase();
-
-
-    el.style.display =
-        "block";
-
-
-    setTimeout(
-        ()=>{
-
-            el.style.display =
-                "none";
-
-        },
-        10000
-    );
-
-}
-
-
-// ======================================================
-// JAM
-// ======================================================
+/* =====================================================
+   JAM
+===================================================== */
 
 function updateJam(){
-
-    let now =
-        new Date();
-
 
     document.getElementById(
         "jam"
     ).innerHTML =
 
-        now.toLocaleTimeString(
+        new Date().toLocaleTimeString(
             "id-ID",
             {
                 hour:"2-digit",
@@ -799,29 +886,30 @@ function updateJam(){
 }
 
 
-// ======================================================
-// TANGGAL + HIJRIAH
-// ======================================================
+/* =====================================================
+   TANGGAL + HIJRIAH
+===================================================== */
 
 function updateTanggal(){
 
-    let now =
+    const now =
         new Date();
 
 
-    // Koreksi Hijriah -1 hari
-    // sesuai permintaan sebelumnya
+    /*
+       Koreksi 1 hari mundur
+       sesuai permintaan sebelumnya.
+    */
 
-    let hijriDate =
+    const hijriDate =
         new Date(now);
 
-
     hijriDate.setDate(
-        hijriDate.getDate() - 1
+        hijriDate.getDate()-1
     );
 
 
-    let hijri =
+    const hijri =
         new Intl.DateTimeFormat(
             "id-TN-u-ca-islamic",
             {
@@ -832,7 +920,7 @@ function updateTanggal(){
         ).format(hijriDate);
 
 
-    let masehi =
+    const masehi =
         now.toLocaleDateString(
             "id-ID",
             {
@@ -855,17 +943,13 @@ function updateTanggal(){
 }
 
 
-// ======================================================
-// PASARAN JAWA
-// ======================================================
+/* =====================================================
+   PASARAN JAWA
+===================================================== */
 
 function getPasaranJawa(){
 
-    let now =
-        new Date();
-
-
-    let pasaran = [
+    const pasaran = [
 
         "Legi",
         "Pahing",
@@ -876,7 +960,7 @@ function getPasaranJawa(){
     ];
 
 
-    let tglAwal =
+    const awal =
         new Date(
             1970,
             0,
@@ -884,15 +968,19 @@ function getPasaranJawa(){
         );
 
 
-    let selisih =
+    const now =
+        new Date();
+
+
+    const selisih =
         Math.floor(
-            (now - tglAwal) /
-            (1000*60*60*24)
+            (now-awal) /
+            86400000
         );
 
 
-    let index =
-        (selisih + 3) % 5;
+    const index =
+        (selisih+3)%5;
 
 
     document.getElementById(
@@ -905,53 +993,95 @@ function getPasaranJawa(){
 }
 
 
-// ======================================================
-// COUNTDOWN
-// ======================================================
+/* =====================================================
+   COUNTDOWN
+===================================================== */
 
 function updateCountdown(){
 
-    if(!jadwal.length)
-        return;
-
-
-    let now =
+    const now =
         new Date();
 
 
-    let next =
-        null;
+    let target = null;
+
+    let nama = "";
 
 
-    let nama =
-        "";
+    const daftar = [];
+
+
+    if(
+        now.getDay() === 5
+    ){
+
+        daftar.push(
+            {
+                nama:"Subuh",
+                waktu:jadwal[0].waktu
+            },
+            {
+                nama:"Jumatan",
+                waktu:"11:33"
+            },
+            {
+                nama:"Ashar",
+                waktu:jadwal[2].waktu
+            },
+            {
+                nama:"Maghrib",
+                waktu:jadwal[3].waktu
+            },
+            {
+                nama:"Isya",
+                waktu:jadwal[4].waktu
+            }
+        );
+
+    }
+    else{
+
+        daftar.push(
+            {
+                nama:"Subuh",
+                waktu:jadwal[0].waktu
+            },
+            {
+                nama:"Dzuhur",
+                waktu:jadwal[1].waktu
+            },
+            {
+                nama:"Ashar",
+                waktu:jadwal[2].waktu
+            },
+            {
+                nama:"Maghrib",
+                waktu:jadwal[3].waktu
+            },
+            {
+                nama:"Isya",
+                waktu:jadwal[4].waktu
+            }
+        );
+
+    }
 
 
     for(
-        let item of jadwal
+        const item of daftar
     ){
 
-        let waktu =
+        const waktu =
             waktuHariIni(
                 item.waktu
             );
 
 
-        // Jumatan sudah lewat
-
         if(
-            item.isJumat &&
-            now >= waktu
+            waktu > now
         ){
 
-            continue;
-
-        }
-
-
-        if(waktu > now){
-
-            next =
+            target =
                 waktu;
 
             nama =
@@ -964,53 +1094,42 @@ function updateCountdown(){
     }
 
 
-    // Jika semua jadwal hari ini
-    // sudah lewat
+    if(!target){
 
-    if(!next){
-
-        let pertama =
-            jadwal[0];
-
-
-        next =
+        target =
             waktuHariIni(
-                pertama.waktu
+                daftar[0].waktu
             );
 
-
-        next.setDate(
-            next.getDate()+1
+        target.setDate(
+            target.getDate()+1
         );
 
-
         nama =
-            pertama.nama;
+            daftar[0].nama;
 
     }
 
 
-    let selisih =
-        next - now;
+    const s =
+        target-now;
 
 
-    let jam =
+    const jam =
         Math.floor(
-            selisih / 3600000
+            s/3600000
         );
 
 
-    let menit =
+    const menit =
         Math.floor(
-            (selisih % 3600000) /
-            60000
+            (s%3600000)/60000
         );
 
 
-    let detik =
+    const detik =
         Math.floor(
-            (selisih % 60000) /
-            1000
+            (s%60000)/1000
         );
 
 
@@ -1023,247 +1142,471 @@ function updateCountdown(){
         " " +
 
         String(jam)
-            .padStart(2,"0") +
+        .padStart(2,"0") +
 
         ":" +
 
         String(menit)
-            .padStart(2,"0") +
+        .padStart(2,"0") +
 
         ":" +
 
         String(detik)
-            .padStart(2,"0");
+        .padStart(2,"0");
 
 }
 
 
-// ======================================================
-// CEK JUMAT
-// ======================================================
+/* =====================================================
+   TARGET AUDIO
+===================================================== */
 
-function cekJumat(){
+function getTargetAudioTime(slot){
+
+    /*
+       AUDIO SUBUH
+    */
 
     if(
-        new Date().getDay() === 5
+        slot.id === "subuh"
     ){
 
-        tampilkanJadwal();
+        return getWaktuSholat(
+            "Subuh"
+        );
 
     }
 
-}
 
+    /*
+       MAGHRIB BIASA
 
-// ======================================================
-// CEK GANTI HARI
-// ======================================================
+       HANYA:
+       Minggu, Senin, Selasa,
+       Rabu, Jumat, Sabtu
 
-function cekPergantianHari(){
-
-    let hari =
-        new Date().toDateString();
-
+       KAMIS TIDAK JALAN.
+    */
 
     if(
-        hari !== tanggalTerakhir
+        slot.id === "maghrib"
     ){
 
-        ambilJadwalSholat();
+        if(
+            new Date().getDay() === 4
+        ){
 
-        updateTanggal();
+            return null;
+
+        }
+
+        return getWaktuSholat(
+            "Maghrib"
+        );
 
     }
 
+
+    /*
+       YASIN
+
+       HANYA KAMIS
+       DAN MENGIKUTI MAGHRIB
+    */
+
+    if(
+        slot.id === "yasin"
+    ){
+
+        if(
+            new Date().getDay() !== 4
+        ){
+
+            return null;
+
+        }
+
+        return getWaktuSholat(
+            "Maghrib"
+        );
+
+    }
+
+
+    /*
+       JUMATAN
+    */
+
+    if(
+        slot.id === "jumatan"
+    ){
+
+        if(
+            new Date().getDay() !== 5
+        ){
+
+            return null;
+
+        }
+
+        return "11:33";
+
+    }
+
+
+    /*
+       AZAN
+    */
+
+    if(
+        slot.tipe === "sholat"
+    ){
+
+        return getWaktuSholat(
+            slot.target
+        );
+
+    }
+
+
+    /*
+       AUDIO MANUAL
+    */
+
+    if(
+        slot.tipe === "manual"
+    ){
+
+        return (
+            audioSettings[
+                slot.id
+            ]?.time || null
+        );
+
+    }
+
+
+    return null;
+
 }
 
 
-// ======================================================
-// AUDIO SCHEDULER
-// ======================================================
+/* =====================================================
+   INFO SLOT
+===================================================== */
 
-const audioBlocksDiv =
-    document.getElementById(
-        "audioBlocks"
-    );
+function getInfoSlot(slot){
+
+    if(
+        slot.id === "maghrib"
+    ){
+
+        return "Otomatis saat Maghrib — kecuali Kamis";
+
+    }
 
 
-const audios = [];
+    if(
+        slot.id === "yasin"
+    ){
+
+        return "Kamis: otomatis saat Maghrib menggantikan Audio Maghrib";
+
+    }
 
 
-for(
-    let i=0;
-    i<5;
-    i++
-){
+    if(
+        slot.id === "jumatan"
+    ){
 
-    const div =
-        document.createElement(
-            "div"
+        return "Khusus Jumat: 11:33";
+
+    }
+
+
+    if(
+        slot.tipe === "sholat"
+    ){
+
+        return "Mengikuti jadwal " +
+            slot.target;
+
+    }
+
+
+    if(
+        slot.tipe === "manual"
+    ){
+
+        return "Jam bebas/manual";
+
+    }
+
+
+    return "";
+
+}
+
+
+/* =====================================================
+   PANEL AUDIO
+===================================================== */
+
+function buatPanelAudio(){
+
+    const container =
+        document.getElementById(
+            "audioBlocks"
         );
 
 
-    div.innerHTML = `
+    container.innerHTML = "";
 
-<hr>
+
+    AUDIO_SLOTS.forEach(
+        slot=>{
+
+            const data =
+                audioSettings[
+                    slot.id
+                ] || {};
+
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "audioSlot";
+
+
+            const waktu =
+                getTargetAudioTime(
+                    slot
+                );
+
+
+            let waktuText =
+                "";
+
+
+            if(waktu){
+
+                waktuText =
+                    "⏰ " +
+                    waktu;
+
+            }
+            else{
+
+                if(
+                    slot.id === "maghrib"
+                ){
+
+                    waktuText =
+                        "⏰ Tidak aktif Kamis";
+
+                }
+                else if(
+                    slot.id === "yasin"
+                ){
+
+                    waktuText =
+                        "⏰ Aktif Kamis saat Maghrib";
+
+                }
+                else if(
+                    slot.id === "jumatan"
+                ){
+
+                    waktuText =
+                        "⏰ Aktif Jumat 11:33";
+
+                }
+                else{
+
+                    waktuText =
+                        "⏰ Menunggu jadwal";
+
+                }
+
+            }
+
+
+            div.innerHTML = `
+
+<strong>
+${slot.nama}
+</strong>
+
+<div class="autoTime">
+${waktuText}
+</div>
+
+<div class="info">
+${getInfoSlot(slot)}
+</div>
 
 <input
     type="file"
-    class="audioFile"
-    accept=".mp3"
+    id="file_${slot.id}"
+    accept="audio/*"
 >
+
+${
+    slot.tipe === "manual"
+    ?
+    `
+    <br>
+    <input
+        type="time"
+        id="time_${slot.id}"
+        step="1"
+        value="${data.time || ""}"
+    >
+    `
+    :
+    ""
+}
 
 <br>
 
-<input
-    type="time"
-    class="timeInput${i}"
-    step="1"
+<button
+    onclick="hapusAudio('${slot.id}')"
 >
+Hapus Audio
+</button>
 
-<audio
-    id="playerExtra${i}"
-></audio>
+<div
+    class="status"
+    id="status_${slot.id}"
+>
+${
+    data.fileName
+    ?
+    "File: " + data.fileName
+    :
+    "Belum ada file"
+}
+</div>
 
 `;
 
 
-    audioBlocksDiv.appendChild(div);
+            container.appendChild(
+                div
+            );
 
 
-    audios.push({
-
-        player:
-            document.getElementById(
-                `playerExtra${i}`
-            ),
-
-        file:null,
-
-        time:null
-
-    });
-
-}
-
-
-// ======================================================
-// FILE AUDIO
-// ======================================================
-
-document
-.querySelectorAll(".audioFile")
-.forEach(
-(input,index)=>{
-
-    input.addEventListener(
-        "change",
-        e=>{
-
-            if(
-                !e.target.files[0]
-            )
-                return;
-
-
-            audios[index].file =
-                URL.createObjectURL(
-                    e.target.files[0]
+            const fileInput =
+                document.getElementById(
+                    "file_" +
+                    slot.id
                 );
 
 
-            audios[index].player.src =
-                audios[index].file;
+            fileInput.addEventListener(
+                "change",
+                async function(){
 
-        }
-    );
-
-});
-
-
-// ======================================================
-// WAKTU AUDIO
-// ======================================================
-
-for(
-    let i=0;
-    i<5;
-    i++
-){
-
-    document
-    .querySelector(
-        `.timeInput${i}`
-    )
-    .addEventListener(
-        "change",
-        e=>{
-
-            let p =
-                e.target.value
-                .split(":")
-                .map(Number);
+                    const file =
+                        this.files[0];
 
 
-            audios[i].time = {
-
-                hour:p[0],
-
-                minute:p[1],
-
-                second:
-                    p[2] || 0
-
-            };
-
-        }
-    );
-
-}
+                    if(!file)
+                        return;
 
 
-// ======================================================
-// CEK AUDIO
-// ======================================================
-
-function cekAudioTambahan(){
-
-    let now =
-        new Date();
+                    await saveAudio(
+                        slot.id,
+                        file.name,
+                        file
+                    );
 
 
-    audios.forEach(
-        audio=>{
+                    if(
+                        !audioSettings[
+                            slot.id
+                        ]
+                    ){
 
-            if(
-                !audio.file ||
-                !audio.time
-            )
-                return;
+                        audioSettings[
+                            slot.id
+                        ] = {};
+
+                    }
+
+
+                    audioSettings[
+                        slot.id
+                    ].fileName =
+                        file.name;
+
+
+                    localStorage.setItem(
+                        "audioSettings",
+                        JSON.stringify(
+                            audioSettings
+                        )
+                    );
+
+
+                    document.getElementById(
+                        "status_" +
+                        slot.id
+                    ).innerText =
+                        "File: " +
+                        file.name;
+
+                }
+            );
 
 
             if(
-
-                now.getHours() ===
-                audio.time.hour &&
-
-                now.getMinutes() ===
-                audio.time.minute &&
-
-                now.getSeconds() ===
-                audio.time.second
-
+                slot.tipe === "manual"
             ){
 
-                audio.player.currentTime =
-                    0;
-
-
-                audio.player
-                    .play()
-                    .catch(
-                        ()=>{}
+                const timeInput =
+                    document.getElementById(
+                        "time_" +
+                        slot.id
                     );
+
+
+                timeInput.addEventListener(
+                    "change",
+                    function(){
+
+                        if(
+                            !audioSettings[
+                                slot.id
+                            ]
+                        ){
+
+                            audioSettings[
+                                slot.id
+                            ] = {};
+
+                        }
+
+
+                        audioSettings[
+                            slot.id
+                        ].time =
+                            this.value;
+
+
+                        localStorage.setItem(
+                            "audioSettings",
+                            JSON.stringify(
+                                audioSettings
+                            )
+                        );
+
+                    }
+                );
 
             }
 
@@ -1273,64 +1616,355 @@ function cekAudioTambahan(){
 }
 
 
-// ======================================================
-// VOLUME
-// ======================================================
+/* =====================================================
+   HAPUS AUDIO
+===================================================== */
 
-const volSlider =
+async function hapusAudio(id){
+
+    await deleteAudio(id);
+
+
+    delete audioSettings[id];
+
+
+    localStorage.setItem(
+        "audioSettings",
+        JSON.stringify(
+            audioSettings
+        )
+    );
+
+
+    buatPanelAudio();
+
+}
+
+
+/* =====================================================
+   PUTAR AUDIO
+===================================================== */
+
+async function playAudio(slot){
+
+    if(!audioUnlocked)
+        return;
+
+
+    /*
+       Jangan menumpuk audio.
+    */
+
+    if(
+        activeAudio &&
+        !activeAudio.ended
+    ){
+
+        return;
+
+    }
+
+
+    const data =
+        await getAudio(
+            slot.id
+        );
+
+
+    if(
+        !data ||
+        !data.file
+    ){
+
+        return;
+
+    }
+
+
+    const url =
+        URL.createObjectURL(
+            data.file
+        );
+
+
+    const audio =
+        new Audio(url);
+
+
+    audio.volume =
+        Number(
+            localStorage.getItem(
+                "volume"
+            ) || 1
+        );
+
+
+    activeAudio =
+        audio;
+
+
+    audio.onended =
+    function(){
+
+        URL.revokeObjectURL(
+            url
+        );
+
+        activeAudio =
+            null;
+
+    };
+
+
+    audio.onerror =
+    function(){
+
+        URL.revokeObjectURL(
+            url
+        );
+
+        activeAudio =
+            null;
+
+    };
+
+
+    try{
+
+        await audio.play();
+
+    }
+    catch(e){
+
+        console.log(
+            "Autoplay diblokir:",
+            e
+        );
+
+        activeAudio =
+            null;
+
+    }
+
+}
+
+
+/* =====================================================
+   SCHEDULER AUDIO
+===================================================== */
+
+async function cekAudioOtomatis(){
+
+    if(!audioUnlocked)
+        return;
+
+
+    const now =
+        new Date();
+
+
+    const tanggal =
+        now.getFullYear() +
+        "-" +
+        String(
+            now.getMonth()+1
+        ).padStart(2,"0") +
+        "-" +
+        String(
+            now.getDate()
+        ).padStart(2,"0");
+
+
+    for(
+        const slot of AUDIO_SLOTS
+    ){
+
+        const waktu =
+            getTargetAudioTime(
+                slot
+            );
+
+
+        if(!waktu)
+            continue;
+
+
+        const p =
+            waktu
+            .split(":")
+            .map(Number);
+
+
+        const key =
+            tanggal +
+            "_" +
+            slot.id;
+
+
+        /*
+           Sudah diputar hari ini?
+        */
+
+        if(
+            playedToday[key]
+        ){
+
+            continue;
+
+        }
+
+
+        /*
+           Tepat waktu.
+           Diberi toleransi 2 detik
+           supaya interval tidak melewatkan
+           waktu karena browser sedikit lambat.
+        */
+
+        if(
+
+            now.getHours() === p[0] &&
+
+            now.getMinutes() === p[1] &&
+
+            now.getSeconds() <= 2
+
+        ){
+
+            /*
+               KAMIS MAGHRIB:
+
+               Audio Maghrib biasa sudah
+               tidak mempunyai target.
+
+               Yang mempunyai target adalah
+               Audio Yasin.
+
+               Jadi tidak mungkin keduanya
+               bermain bersamaan.
+            */
+
+            playedToday[key] =
+                true;
+
+
+            await playAudio(
+                slot
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   VOLUME
+===================================================== */
+
+const volume =
     document.getElementById(
         "volume"
     );
 
 
-function updateVolText(){
+function updateVolume(){
+
+    const value =
+        Number(
+            localStorage.getItem(
+                "volume"
+            ) || 1
+        );
+
+
+    volume.value =
+        value;
+
 
     document.getElementById(
         "volText"
     ).innerText =
-
         Math.round(
-            Number(
-                volSlider.value
-            ) * 100
-        ) +
-        "%";
+            value * 100
+        ) + "%";
 
 }
 
 
-volSlider.oninput =
+volume.oninput =
 function(){
+
+    const value =
+        Number(
+            this.value
+        );
+
 
     if(gainNode){
 
         gainNode.gain.value =
-            this.value;
+            value;
 
     }
 
 
     localStorage.setItem(
         "volume",
-        this.value
+        value
     );
 
 
-    updateVolText();
+    document.getElementById(
+        "volText"
+    ).innerText =
+        Math.round(
+            value * 100
+        ) + "%";
 
 };
 
 
-// ======================================================
-// SETTING
-// ======================================================
+/* =====================================================
+   PERGANTIAN HARI
+===================================================== */
+
+function cekHariBaru(){
+
+    const hari =
+        new Date()
+        .toDateString();
+
+
+    if(
+        hari !==
+        tanggalTerakhir
+    ){
+
+        playedToday = {};
+
+        ambilJadwalSholat();
+
+        updateTanggal();
+
+        buatPanelAudio();
+
+    }
+
+}
+
+
+/* =====================================================
+   PANEL SETTING
+===================================================== */
 
 document.getElementById(
     "settingBtn"
 ).onclick =
 function(){
 
-    let panel =
+    const panel =
         document.getElementById(
             "audioPanel"
         );
@@ -1338,7 +1972,8 @@ function(){
 
     panel.style.display =
 
-        panel.style.display === "none"
+        panel.style.display ===
+        "none"
 
         ?
 
@@ -1351,11 +1986,11 @@ function(){
 };
 
 
-// ======================================================
-// START SYSTEM
-// ======================================================
+/* =====================================================
+   START
+===================================================== */
 
-function startSystem(){
+async function startSystem(){
 
     updateJam();
 
@@ -1364,6 +1999,27 @@ function startSystem(){
     getPasaranJawa();
 
     ambilJadwalSholat();
+
+    updateCountdown();
+
+    updateVolume();
+
+
+    try{
+
+        await openDatabase();
+
+        buatPanelAudio();
+
+    }
+    catch(e){
+
+        console.error(
+            "IndexedDB:",
+            e
+        );
+
+    }
 
 
     setInterval(
@@ -1391,25 +2047,19 @@ function startSystem(){
 
 
     setInterval(
-        cekAdzan,
+        tampilkanJadwal,
         1000
     );
 
 
     setInterval(
-        cekAudioTambahan,
+        cekHariBaru,
         1000
     );
 
 
     setInterval(
-        cekPergantianHari,
-        1000
-    );
-
-
-    setInterval(
-        cekJumat,
+        cekAudioOtomatis,
         1000
     );
 
