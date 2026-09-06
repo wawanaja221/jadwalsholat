@@ -928,6 +928,18 @@ function ambilJadwalTanggal(date){
    UPDATE JADWAL
 ========================================================= */
 
+function hitungImsakDariSubuh(subuh){
+
+    if(!subuh || subuh === "--:--")
+        return "--:--";
+
+    return detikKeWaktu(
+        waktuKeDetik(subuh + ":00") - (10 * 60)
+    ).slice(0,5);
+
+}
+
+
 function updateJadwal(){
 
     const data =
@@ -938,8 +950,13 @@ function updateJadwal(){
 
     if(data){
 
+        /* Imsak otomatis mengikuti Subuh pada tanggal aktif.
+           Jika data Imsak tersedia, gunakan data tersebut.
+           Jika kosong, otomatis = 10 menit sebelum Subuh. */
         jadwal.imsak =
-            data[0];
+            data[0] && data[0] !== "--:--"
+            ? data[0]
+            : hitungImsakDariSubuh(data[1]);
 
         jadwal.subuh =
             data[1];
