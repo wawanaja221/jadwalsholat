@@ -23,10 +23,6 @@ body{
     overflow-x:hidden;
 }
 
-/* =========================================================
-   HEADER
-========================================================= */
-
 .header{
     padding:25px 10px 10px;
 }
@@ -35,8 +31,7 @@ body{
     font-size:clamp(30px,5vw,60px);
     font-weight:bold;
     color:#ff9d00;
-    text-shadow:
-        0 0 10px rgba(255,157,0,.4);
+    text-shadow:0 0 10px rgba(255,157,0,.4);
 }
 
 #tanggal{
@@ -51,8 +46,7 @@ body{
     color:#ffad00;
     letter-spacing:4px;
     margin-top:20px;
-    text-shadow:
-        0 0 20px rgba(255,173,0,.25);
+    text-shadow:0 0 20px rgba(255,173,0,.25);
 }
 
 #imam{
@@ -72,11 +66,6 @@ body{
     margin-top:12px;
 }
 
-
-/* =========================================================
-   COUNTDOWN
-========================================================= */
-
 .countdownBox{
     margin:35px auto 0;
     width:min(700px,92%);
@@ -84,8 +73,7 @@ body{
     border-radius:20px;
     background:rgba(10,20,32,.85);
     border:1px solid #23405d;
-    box-shadow:
-        0 10px 35px rgba(0,0,0,.35);
+    box-shadow:0 10px 35px rgba(0,0,0,.35);
 }
 
 .countdownTitle{
@@ -99,11 +87,6 @@ body{
     color:white;
     font-weight:bold;
 }
-
-
-/* =========================================================
-   JADWAL
-========================================================= */
 
 .scheduleBox{
     width:min(1000px,94%);
@@ -122,8 +105,7 @@ body{
 
 #jadwal{
     display:grid;
-    grid-template-columns:
-        repeat(auto-fit,minmax(120px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
     gap:10px;
 }
 
@@ -152,11 +134,6 @@ body{
     margin-top:5px;
 }
 
-
-/* =========================================================
-   AUDIO STATUS
-========================================================= */
-
 #statusAudio{
     color:#00ff66;
     font-size:16px;
@@ -165,32 +142,20 @@ body{
     width:min(700px,92%);
 }
 
-
-/* =========================================================
-   SETTING BUTTON
-========================================================= */
-
 #settingBtn{
     position:fixed;
     right:18px;
     bottom:18px;
     z-index:1001;
-
     width:52px;
     height:52px;
-
     border-radius:50%;
     border:1px solid #34536d;
-
     background:#10263c;
     color:white;
-
     cursor:pointer;
     font-size:24px;
-
-    box-shadow:
-        0 5px 20px rgba(0,0,0,.5);
-
+    box-shadow:0 5px 20px rgba(0,0,0,.5);
     transition:.2s;
 }
 
@@ -198,43 +163,22 @@ body{
     transform:rotate(25deg) scale(1.05);
 }
 
-
-/* =========================================================
-   AUDIO PANEL
-========================================================= */
-
 #audioPanel{
     display:none;
-
     position:fixed;
     right:18px;
     bottom:82px;
-
     width:min(500px,calc(100vw - 30px));
     max-height:85vh;
-
     overflow:auto;
-
-    background:
-        linear-gradient(
-            180deg,
-            #101d2b,
-            #080e15
-        );
-
+    background:linear-gradient(180deg,#101d2b,#080e15);
     color:white;
-
     border:1px solid #31516d;
     border-radius:18px;
-
     padding:18px;
-
     text-align:left;
-
     z-index:1000;
-
-    box-shadow:
-        0 15px 50px rgba(0,0,0,.65);
+    box-shadow:0 15px 50px rgba(0,0,0,.65);
 }
 
 .panelHeader{
@@ -244,17 +188,10 @@ body{
     margin-bottom:15px;
 }
 
-
-/* =========================================================
-   SETTING SECTION
-========================================================= */
-
 .settingSection{
     margin-bottom:15px;
     padding:14px;
-
     background:#0b1724;
-
     border:1px solid #203a52;
     border-radius:14px;
 }
@@ -270,7 +207,6 @@ body{
     grid-template-columns:1fr 140px;
     gap:8px;
     align-items:center;
-
     margin:8px 0;
 }
 
@@ -282,28 +218,18 @@ body{
 .settingRow input{
     width:100%;
     padding:8px;
-
     border-radius:8px;
     border:1px solid #31516d;
-
     background:#050b12;
     color:white;
-
     font-family:monospace;
 }
-
-
-/* =========================================================
-   AUDIO SLOT
-========================================================= */
 
 .slot{
     background:#0d1d2c;
     border:1px solid #294760;
-
     padding:12px;
     margin:10px 0;
-
     border-radius:13px;
 }
 
@@ -335,12 +261,9 @@ body{
 .settingButton{
     margin-top:8px;
     padding:7px 11px;
-
     cursor:pointer;
-
     border:1px solid #31516d;
     border-radius:8px;
-
     background:#122b42;
     color:white;
 }
@@ -350,58 +273,28 @@ body{
     background:#1b4567;
 }
 
-
-/* =========================================================
-   UNLOCK AUDIO
-========================================================= */
-
 #unlockAudio{
     position:fixed;
     top:0;
     left:0;
-
     width:100%;
-
     padding:14px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #10263b,
-            #163c55,
-            #10263b
-        );
-
+    background:linear-gradient(90deg,#10263b,#163c55,#10263b);
     color:white;
-
     z-index:2000;
-
     cursor:pointer;
-
     border-bottom:1px solid #31516d;
-
     font-size:15px;
 }
 
 </style>
 </head>
 
-
 <body>
-
-
-<!-- =======================================================
-     AKTIFKAN AUDIO
-======================================================== -->
 
 <div id="unlockAudio">
 🔊 KLIK DI SINI SEKALI UNTUK MENGAKTIFKAN AUDIO OTOMATIS
 </div>
-
-
-<!-- =======================================================
-     HEADER
-======================================================== -->
 
 <div class="header">
 
@@ -421,11 +314,6 @@ body{
 
 </div>
 
-
-<!-- =======================================================
-     COUNTDOWN
-======================================================== -->
-
 <div class="countdownBox">
 
     <div class="countdownTitle">
@@ -437,11 +325,6 @@ body{
     </div>
 
 </div>
-
-
-<!-- =======================================================
-     JADWAL
-======================================================== -->
 
 <div class="scheduleBox">
 
@@ -455,35 +338,19 @@ body{
 
 </div>
 
-
 <div id="statusAudio">
     Audio otomatis belum diaktifkan
 </div>
 
-
-<!-- =======================================================
-     SETTING BUTTON
-======================================================== -->
-
 <button id="settingBtn">
     ⚙
 </button>
-
-
-<!-- =======================================================
-     PANEL
-======================================================== -->
 
 <div id="audioPanel">
 
     <div class="panelHeader">
         ⚙️ PENGATURAN AUDIO & AZAN
     </div>
-
-
-    <!-- ===================================================
-         SETTING AZAN
-    ==================================================== -->
 
     <div class="settingSection">
 
@@ -539,11 +406,6 @@ body{
 
     </div>
 
-
-    <!-- ===================================================
-         SETTING AUDIO
-    ==================================================== -->
-
     <div class="settingSection">
 
         <div class="settingTitle">
@@ -568,11 +430,6 @@ body{
 
     </div>
 
-
-    <!-- ===================================================
-         AUDIO FILE
-    ==================================================== -->
-
     <div class="settingSection">
 
         <div class="settingTitle">
@@ -589,119 +446,104 @@ body{
 <script>
 
 /* =========================================================
-   DATA JADWAL
+   DATA JADWAL OKTOBER 2026 SAJA
    [Imsak, Subuh, Dzuhur, Ashar, Maghrib, Isya]
 ========================================================= */
 
 const DATA_JADWAL = {
 
-    "2026-08-26":
-    ["04:07","04:17","11:34","14:53","17:32","18:42"],
+    "2026-10-01":
+    ["03:49","03:59","11:21","14:30","17:26","18:35"],
 
-    "2026-08-27":
-    ["04:07","04:17","11:34","14:53","17:32","18:42"],
+    "2026-10-02":
+    ["03:48","03:58","11:21","14:29","17:26","18:35"],
 
-    "2026-08-28":
-    ["04:07","04:17","11:34","14:53","17:32","18:41"],
+    "2026-10-03":
+    ["03:48","03:58","11:20","14:28","17:26","18:35"],
 
-    "2026-08-29":
-    ["04:06","04:16","11:34","14:52","17:32","18:41"],
+    "2026-10-04":
+    ["03:47","03:57","11:20","14:27","17:25","18:35"],
 
-    "2026-08-30":
-    ["04:06","04:16","11:33","14:52","17:32","18:41"],
+    "2026-10-05":
+    ["03:47","03:57","11:20","14:26","17:25","18:35"],
 
-    "2026-08-31":
-    ["04:05","04:15","11:33","14:51","17:32","18:41"],
+    "2026-10-06":
+    ["03:46","03:56","11:20","14:25","17:25","18:35"],
 
-    "2026-09-01":
-    ["04:05","04:15","11:31","14:51","17:30","18:40"],
+    "2026-10-07":
+    ["03:46","03:56","11:19","14:24","17:25","18:35"],
 
-    "2026-09-02":
-    ["04:04","04:14","11:32","14:50","17:31","18:40"],
+    "2026-10-08":
+    ["03:45","03:55","11:19","14:23","17:25","18:35"],
 
-    "2026-09-03":
-    ["04:04","04:14","11:32","14:50","17:31","18:40"],
+    "2026-10-09":
+    ["03:44","03:54","11:19","14:22","17:25","18:35"],
 
-    "2026-09-04":
-    ["04:04","04:14","11:32","14:49","17:31","18:40"],
+    "2026-10-10":
+    ["03:44","03:54","11:18","14:22","17:25","18:35"],
 
-    "2026-09-05":
-    ["04:03","04:13","11:31","14:49","17:31","18:40"],
+    "2026-10-11":
+    ["03:43","03:53","11:18","14:21","17:25","18:35"],
 
-    "2026-09-06":
-    ["04:03","04:13","11:31","14:48","17:31","18:40"],
+    "2026-10-12":
+    ["03:43","03:53","11:18","14:20","17:25","18:35"],
 
-    "2026-09-07":
-    ["04:02","04:12","11:31","14:48","17:31","18:39"],
+    "2026-10-13":
+    ["03:42","03:52","11:17","14:20","17:25","18:35"],
 
-    "2026-09-08":
-    ["04:02","04:12","11:30","14:47","17:30","18:39"],
+    "2026-10-14":
+    ["03:42","03:52","11:17","14:19","17:25","18:35"],
 
-    "2026-09-09":
-    ["04:01","04:11","11:30","14:46","17:30","18:39"],
+    "2026-10-15":
+    ["03:41","03:51","11:17","14:18","17:25","18:35"],
 
-    "2026-09-10":
-    ["04:01","04:11","11:30","14:46","17:30","18:39"],
+    "2026-10-16":
+    ["03:41","03:51","11:17","14:17","17:25","18:35"],
 
-    "2026-09-11":
-    ["04:00","04:10","11:29","14:45","17:30","18:39"],
+    "2026-10-17":
+    ["03:40","03:50","11:17","14:17","17:25","18:35"],
 
-    "2026-09-12":
-    ["04:00","04:10","11:29","14:44","17:30","18:39"],
+    "2026-10-18":
+    ["03:40","03:50","11:16","14:16","17:25","18:35"],
 
-    "2026-09-13":
-    ["03:59","04:09","11:29","14:43","17:30","18:39"],
+    "2026-10-19":
+    ["03:39","03:49","11:16","14:15","17:25","18:36"],
 
-    "2026-09-14":
-    ["03:59","04:09","11:28","14:42","17:29","18:38"],
+    "2026-10-20":
+    ["03:39","03:49","11:16","14:15","17:25","18:36"],
 
-    "2026-09-15":
-    ["03:58","04:08","11:28","14:41","17:29","18:38"],
+    "2026-10-21":
+    ["03:38","03:48","11:16","14:14","17:25","18:36"],
 
-    "2026-09-16":
-    ["03:58","04:08","11:27","14:40","17:29","18:38"],
+    "2026-10-22":
+    ["03:38","03:48","11:16","14:14","17:25","18:36"],
 
-    "2026-09-17":
-    ["03:57","04:07","11:27","14:39","17:29","18:38"],
+    "2026-10-23":
+    ["03:37","03:47","11:16","14:13","17:25","18:36"],
 
-    "2026-09-18":
-    ["03:57","04:07","11:27","14:38","17:29","18:38"],
+    "2026-10-24":
+    ["03:37","03:47","11:16","14:13","17:25","18:36"],
 
-    "2026-09-19":
-    ["03:56","04:06","11:26","14:37","17:29","18:38"],
+    "2026-10-25":
+    ["03:37","03:47","11:16","14:12","17:25","18:37"],
 
-    "2026-09-20":
-    ["03:55","04:05","11:26","14:36","17:29","18:38"],
+    "2026-10-26":
+    ["03:36","03:46","11:16","14:12","17:25","18:37"],
 
-    "2026-09-21":
-    ["03:55","04:05","11:25","14:35","17:29","18:38"],
+    "2026-10-27":
+    ["03:36","03:46","11:16","14:12","17:25","18:37"],
 
-    "2026-09-22":
-    ["03:54","04:04","11:25","14:34","17:28","18:38"],
+    "2026-10-28":
+    ["03:35","03:45","11:16","14:11","17:25","18:37"],
 
-    "2026-09-23":
-    ["03:54","04:04","11:25","14:33","17:28","18:38"],
+    "2026-10-29":
+    ["03:35","03:45","11:16","14:11","17:25","18:38"],
 
-    "2026-09-24":
-    ["03:53","04:03","11:24","14:32","17:28","18:37"],
+    "2026-10-30":
+    ["03:35","03:45","11:16","14:11","17:26","18:38"],
 
-    "2026-09-25":
-    ["03:52","04:02","11:24","14:31","17:28","18:37"],
-
-    "2026-09-26":
-    ["03:52","04:02","11:24","14:30","17:28","18:37"],
-
-    "2026-09-27":
-    ["03:51","04:01","11:23","14:29","17:28","18:37"],
-
-    "2026-09-28":
-    ["03:51","04:01","11:23","14:28","17:28","18:37"],
-
-    "2026-09-29":
-    ["03:50","04:00","11:22","14:27","17:28","18:37"],
-
-    "2026-09-30":
-    ["03:50","04:00","11:22","14:26","17:28","18:37"]
+    "2026-10-31":
+    ["03:34","03:44","11:16","14:11","17:26","18:38"]
 
 };
 
@@ -712,12 +554,12 @@ const DATA_JADWAL = {
 
 let jadwal = {
 
-    imsak:"04:07",
-    subuh:"04:17",
-    dzuhur:"11:34",
-    ashar:"14:53",
-    maghrib:"17:32",
-    isya:"18:42"
+    imsak:"03:49",
+    subuh:"03:59",
+    dzuhur:"11:21",
+    ashar:"14:30",
+    maghrib:"17:26",
+    isya:"18:35"
 
 };
 
@@ -830,13 +672,11 @@ function detikKeWaktu(total){
         total % 60;
 
     return (
-
         String(jam).padStart(2,"0") +
         ":" +
         String(menit).padStart(2,"0") +
         ":" +
         String(detik).padStart(2,"0")
-
     );
 
 }
@@ -895,7 +735,6 @@ function getOffset(jenis){
 function getTanggalKey(date){
 
     return (
-
         date.getFullYear() +
         "-" +
         String(
@@ -905,7 +744,6 @@ function getTanggalKey(date){
         String(
             date.getDate()
         ).padStart(2,"0")
-
     );
 
 }
@@ -950,9 +788,6 @@ function updateJadwal(){
 
     if(data){
 
-        /* Imsak otomatis mengikuti Subuh pada tanggal aktif.
-           Jika data Imsak tersedia, gunakan data tersebut.
-           Jika kosong, otomatis = 10 menit sebelum Subuh. */
         jadwal.imsak =
             data[0] && data[0] !== "--:--"
             ? data[0]
@@ -1097,35 +932,16 @@ function getJamAudio(jenis){
 
 /* =========================================================
    WAKTU AZAN OTOMATIS
+   AZAN = WAKTU SHOLAT + 12 DETIK
 ========================================================= */
 
 function getJamAdzan(jenis){
 
-    let waktu;
+    let waktu = null;
 
 
-    if(jenis === "subuh"){
-
-        waktu =
-            jadwal.subuh;
-
-        return detikKeWaktu(
-
-            waktuKeDetik(
-                waktu + ":00"
-            ) +
-
-            hitungOffset(
-
-                SETTINGS.audio.adzanSubuh,
-
-                SHOLAT_ACUAN.subuh
-
-            )
-
-        );
-
-    }
+    if(jenis === "subuh")
+        waktu = jadwal.subuh;
 
 
     if(jenis === "dzuhur")
@@ -1152,15 +968,7 @@ function getJamAdzan(jenis){
 
         waktuKeDetik(
             waktu + ":00"
-        ) +
-
-        hitungOffset(
-
-            SETTINGS.audio.adzanUmum,
-
-            SHOLAT_ACUAN.dzuhur
-
-        )
+        ) + 12
 
     );
 
@@ -1178,7 +986,6 @@ function getJamJumatan(){
         waktuKeDetik(
             jadwal.dzuhur + ":00"
         ) +
-
         SETTINGS.jumatOffset * 60
 
     );
@@ -1221,10 +1028,6 @@ function sedangJumatan(){
 ========================================================= */
 
 function tampilJadwal(){
-
-    const now =
-        new Date();
-
 
     const jumat =
         sedangJumatan();
@@ -1966,85 +1769,61 @@ function updateAudioTimes(){
     if(hari === 5){
 
         isi(
-
             "audioDzuhur",
-
             "⛔ Jumat: diganti Jumatan"
-
         );
 
     }else{
 
         isi(
-
             "audioDzuhur",
-
             "🟢 Otomatis: " +
             getJamAudio("dzuhur")
-
         );
 
     }
 
 
     isi(
-
         "audioAshar",
-
         "🟢 Otomatis: " +
         getJamAudio("ashar")
-
     );
 
 
     if(hari === 4){
 
         isi(
-
             "audioMaghrib",
-
             "⛔ Kamis: Maghrib biasa OFF"
-
         );
 
         isi(
-
             "yasin",
-
             "🟢 Yasin Kamis: " +
             getJamAudio("yasin")
-
         );
 
     }else{
 
         isi(
-
             "audioMaghrib",
-
             "🟢 Otomatis: " +
             getJamAudio("maghrib")
-
         );
 
         isi(
-
             "yasin",
-
             "Khusus Kamis Maghrib"
-
         );
 
     }
 
 
     isi(
-
         "audioIsya",
-
         "🟢 Otomatis: " +
         getJamAudio("isya")
-
     );
 
 
@@ -2092,11 +1871,8 @@ function updateAudioTimes(){
     }else{
 
         isi(
-
             "jumatan",
-
             "Khusus hari Jumat"
-
         );
 
     }
@@ -2288,159 +2064,99 @@ function cekAudio(){
     const daftar = [];
 
 
-    /* SUBUH */
-
     tambahEvent(
-
         daftar,
-
         "audioSubuh",
-
         getJamAudioSubuh()
-
     );
 
 
     tambahEvent(
-
         daftar,
-
         "adzanSubuh",
-
         getJamAdzan("subuh")
-
     );
 
-
-    /* DZUHUR / JUMAT */
 
     if(hari === 5){
 
         tambahEvent(
-
             daftar,
-
             "jumatan",
-
             getJamAudio("jumatan")
-
         );
 
     }else{
 
         tambahEvent(
-
             daftar,
-
             "adzanUmum",
-
             getJamAdzan("dzuhur")
-
         );
 
 
         tambahEvent(
-
             daftar,
-
             "audioDzuhur",
-
             getJamAudio("dzuhur")
-
         );
 
     }
 
 
-    /* ASHAR */
-
     tambahEvent(
-
         daftar,
-
         "adzanUmum",
-
         getJamAdzan("ashar")
-
     );
 
 
     tambahEvent(
-
         daftar,
-
         "audioAshar",
-
         getJamAudio("ashar")
-
     );
 
 
-    /* MAGHRIB */
-
     tambahEvent(
-
         daftar,
-
         "adzanUmum",
-
         getJamAdzan("maghrib")
-
     );
 
 
     if(hari === 4){
 
         tambahEvent(
-
             daftar,
-
             "yasin",
-
             getJamAudio("yasin")
-
         );
 
     }else{
 
         tambahEvent(
-
             daftar,
-
             "audioMaghrib",
-
             getJamAudio("maghrib")
-
         );
 
     }
 
 
-    /* ISYA */
-
     tambahEvent(
-
         daftar,
-
         "adzanUmum",
-
         getJamAdzan("isya")
-
     );
 
 
     tambahEvent(
-
         daftar,
-
         "audioIsya",
-
         getJamAudio("isya")
-
     );
 
-
-    /* JALANKAN */
 
     for(const item of daftar){
 
