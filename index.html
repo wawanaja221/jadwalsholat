@@ -932,7 +932,7 @@ function getJamAudio(jenis){
 
 /* =========================================================
    WAKTU AZAN OTOMATIS
-   TARGET DASAR = WAKTU SHOLAT + 12 DETIK
+   AZAN = WAKTU SHOLAT + 12 DETIK
 ========================================================= */
 
 function getJamAdzan(jenis){
@@ -1060,7 +1060,7 @@ function tampilJadwal(){
 
             azan:
                 jumat
-                ? getJamJumatan()
+                ? getJamAudio("jumatan")
                 : getJamAdzan("dzuhur")
         },
 
@@ -1881,90 +1881,16 @@ function updateAudioTimes(){
 
 
 /* =========================================================
-   AUDIO PLAYER + SISTEM ANTRIAN
+   AUDIO PLAYER
 ========================================================= */
 
 let audioSedangMain = null;
 
-let audioQueue = [];
 
-let audioSedangDiproses = false;
+async function playAudio(id){
 
-
-/*
-    Ini fungsi utama antrean.
-
-    Audio TIDAK PERNAH dipotong.
-
-    Kalau event azan tertahan karena audio sebelumnya
-    masih berjalan, maka azan akan diberi jeda 12 detik
-    setelah audio sebelumnya benar-benar selesai.
-*/
-
-async function prosesAntrianAudio(){
-
-    if(audioSedangDiproses)
-        return;
-
-    if(audioSedangMain)
-        return;
-
-    if(audioQueue.length === 0)
-        return;
-
-
-    audioSedangDiproses = true;
-
-
-    const item =
-        audioQueue.shift();
-
-
-    /*
-        Kalau item adalah azan yang tertahan
-        karena audio sebelumnya masih berjalan,
-        tunggu 12 detik SEBELUM azan.
-    */
-
-    if(
-        item.jedaSebelumPlay &&
-        item.jedaSebelumPlay > 0
-    ){
-
-        document.getElementById(
-            "statusAudio"
-        ).innerHTML =
-            "⏳ Menunggu " +
-            item.jedaSebelumPlay +
-            " detik sebelum azan...";
-
-
-        await new Promise(
-            resolve =>
-                setTimeout(
-                    resolve,
-                    item.jedaSebelumPlay * 1000
-                )
-        );
-
-    }
-
-
-    let data = null;
-
-
-    try{
-
-        data =
-            await ambilAudio(
-                item.id
-            );
-
-    }catch(error){
-
-        console.error(error);
-
-    }
+    const data =
+        await ambilAudio(id);
 
 
     if(!data){
@@ -1973,19 +1899,18 @@ async function prosesAntrianAudio(){
             "statusAudio"
         ).innerHTML =
             "⚠ Audio belum dipasang: " +
-            item.id;
-
-
-        audioSedangDiproses = false;
-
-
-        setTimeout(
-            prosesAntrianAudio,
-            0
-        );
-
+            id;
 
         return;
+
+    }
+
+
+    if(audioSedangMain){
+
+        audioSedangMain.pause();
+
+        audioSedangMain.currentTime = 0;
 
     }
 
@@ -2009,54 +1934,25 @@ async function prosesAntrianAudio(){
     document.getElementById(
         "statusAudio"
     ).innerHTML =
-        item.isAdzan
-        ?
-        "🔊 AZAN: " + data.nama
-        :
-        "🔊 Memutar: " + data.nama;
+        "🔊 Memutar: " +
+        data.nama;
 
 
-    function selesai(){
+    audio.onended =
+    function(){
 
         URL.revokeObjectURL(
             url
         );
 
-
-        if(audioSedangMain === audio){
-
-            audioSedangMain = null;
-
-        }
-
-
-        audioSedangDiproses = false;
-
+        audioSedangMain = null;
 
         document.getElementById(
             "statusAudio"
         ).innerHTML =
-            audioQueue.length > 0
-            ?
-            "⏳ Menunggu audio berikutnya..."
-            :
             "🟢 Audio selesai";
 
-
-        setTimeout(
-            prosesAntrianAudio,
-            0
-        );
-
-    }
-
-
-    audio.onended =
-        selesai;
-
-
-    audio.onerror =
-        selesai;
+    };
 
 
     try{
@@ -2067,142 +1963,7 @@ async function prosesAntrianAudio(){
 
         console.log(error);
 
-        selesai();
-
-        return;
-
     }
-
-
-    /*
-        Audio sudah mulai berjalan.
-        Lock proses dilepas supaya sistem
-        tahu audio sedang aktif lewat
-        audioSedangMain.
-    */
-
-    audioSedangDiproses = false;
-
-}
-
-
-/* =========================================================
-   MASUKKAN AUDIO KE ANTRIAN
-========================================================= */
-
-function masukkanKeAntrian(item){
-
-    /*
-        Jangan masukkan event yang sama dua kali.
-    */
-
-    if(
-        sudahDiputar[item.key]
-    )
-        return;
-
-
-    /*
-        Tandai sebagai sudah dimasukkan
-        ke antrean.
-    */
-
-    sudahDiputar[item.key] = true;
-
-
-    audioQueue.push(item);
-
-
-    /*
-        Urutkan berdasarkan waktu target.
-        Kalau target sama, urutan masuk dipertahankan.
-    */
-
-    audioQueue.sort(
-        (a,b)=>{
-
-            if(a.target !== b.target)
-
-                return a.target - b.target;
-
-
-            return a.urutan - b.urutan;
-
-        }
-    );
-
-
-    /*
-        Kalau event azan masuk ketika
-        masih ada audio yang sedang berjalan
-        ATAU sudah ada antrean sebelumnya,
-        azan harus diberi jeda 12 detik
-        setelah audio sebelum azan selesai.
-    */
-
-    if(
-        item.isAdzan &&
-        (
-            audioSedangMain ||
-            audioQueue.length > 1
-        )
-    ){
-
-        item.jedaSebelumPlay = 12;
-
-    }
-
-
-    prosesAntrianAudio();
-
-}
-
-
-/* =========================================================
-   PLAY AUDIO MANUAL / TEST
-========================================================= */
-
-async function playAudio(id){
-
-    if(!audioDiizinkan){
-
-        alert(
-            "Klik aktifkan audio terlebih dahulu."
-        );
-
-        return;
-
-    }
-
-
-    const sekarang =
-        Date.now();
-
-
-    audioQueue.push({
-
-        id:id,
-
-        waktu:"manual",
-
-        target:sekarang / 1000,
-
-        key:
-            "manual_" +
-            id +
-            "_" +
-            sekarang,
-
-        isAdzan:false,
-
-        jedaSebelumPlay:0,
-
-        urutan:Date.now()
-
-    });
-
-
-    prosesAntrianAudio();
 
 }
 
@@ -2249,8 +2010,7 @@ async function hapusFile(id){
 function tambahEvent(
     daftar,
     id,
-    waktu,
-    isAdzan = false
+    waktu
 ){
 
     if(!waktu)
@@ -2261,15 +2021,7 @@ function tambahEvent(
 
         id:id,
 
-        waktu:waktu,
-
-        isAdzan:isAdzan,
-
-        target:
-            waktuKeDetik(waktu),
-
-        urutan:
-            daftar.length
+        waktu:waktu
 
     });
 
@@ -2312,120 +2064,73 @@ function cekAudio(){
     const daftar = [];
 
 
-    /*
-        AUDIO SUBUH
-    */
-
     tambahEvent(
         daftar,
         "audioSubuh",
-        getJamAudioSubuh(),
-        false
+        getJamAudioSubuh()
     );
 
-
-    /*
-        AZAN SUBUH
-        Target = Subuh + 12 detik
-    */
 
     tambahEvent(
         daftar,
         "adzanSubuh",
-        getJamAdzan("subuh"),
-        true
+        getJamAdzan("subuh")
     );
 
-
-    /*
-        JUMAT
-    */
 
     if(hari === 5){
 
         tambahEvent(
             daftar,
             "jumatan",
-            getJamAudio("jumatan"),
-            false
+            getJamAudio("jumatan")
         );
 
     }else{
 
-        /*
-            AZAN DZUHUR
-        */
-
         tambahEvent(
             daftar,
             "adzanUmum",
-            getJamAdzan("dzuhur"),
-            true
+            getJamAdzan("dzuhur")
         );
 
-
-        /*
-            AUDIO DZUHUR
-        */
 
         tambahEvent(
             daftar,
             "audioDzuhur",
-            getJamAudio("dzuhur"),
-            false
+            getJamAudio("dzuhur")
         );
 
     }
 
 
-    /*
-        AZAN ASHAR
-    */
-
     tambahEvent(
         daftar,
         "adzanUmum",
-        getJamAdzan("ashar"),
-        true
+        getJamAdzan("ashar")
     );
 
-
-    /*
-        AUDIO ASHAR
-    */
 
     tambahEvent(
         daftar,
         "audioAshar",
-        getJamAudio("ashar"),
-        false
+        getJamAudio("ashar")
     );
 
-
-    /*
-        AZAN MAGHRIB
-    */
 
     tambahEvent(
         daftar,
         "adzanUmum",
-        getJamAdzan("maghrib"),
-        true
+        getJamAdzan("maghrib")
     );
 
-
-    /*
-        KAMIS:
-        YASIN menggantikan AUDIO MAGHRIB
-    */
 
     if(hari === 4){
 
         tambahEvent(
             daftar,
             "yasin",
-            getJamAudio("yasin"),
-            false
+            getJamAudio("yasin")
         );
 
     }else{
@@ -2433,53 +2138,24 @@ function cekAudio(){
         tambahEvent(
             daftar,
             "audioMaghrib",
-            getJamAudio("maghrib"),
-            false
+            getJamAudio("maghrib")
         );
 
     }
 
 
-    /*
-        AZAN ISYA
-    */
-
     tambahEvent(
         daftar,
         "adzanUmum",
-        getJamAdzan("isya"),
-        true
+        getJamAdzan("isya")
     );
 
-
-    /*
-        AUDIO ISYA
-    */
 
     tambahEvent(
         daftar,
         "audioIsya",
-        getJamAudio("isya"),
-        false
+        getJamAudio("isya")
     );
-
-
-    /*
-        =====================================================
-        LOGIKA PENTING
-        =====================================================
-
-        Normal:
-        target 04:00:12
-        → langsung play pada 04:00:12
-
-        Kalau audio sedang berjalan:
-        target 04:00:12
-        → azan dimasukkan antrean
-        → audio selesai 04:03:15
-        → tunggu 12 detik
-        → azan 04:03:27
-    */
 
 
     for(const item of daftar){
@@ -2499,56 +2175,20 @@ function cekAudio(){
 
 
         if(
+
             sekarang >= target &&
+
+            sekarang < target + 3 &&
+
             !sudahDiputar[key]
+
         ){
 
-            /*
-                Dalam 3 detik pertama:
-                event normal langsung masuk.
+            sudahDiputar[key] = true;
 
-                Kalau target sudah lewat tetapi
-                masih ada audio yang sedang berjalan
-                atau sudah ada antrean, event tetap
-                dimasukkan.
-
-                Ini yang membuat azan tidak hilang
-                ketika audio sebelumnya panjang.
-            */
-
-            const targetBaruSajaLewat =
-                sekarang < target + 3;
-
-
-            const adaAudioSebelumnya =
-                !!audioSedangMain ||
-                audioQueue.length > 0;
-
-
-            if(
-                targetBaruSajaLewat ||
-                adaAudioSebelumnya
-            ){
-
-                masukkanKeAntrian({
-
-                    id:item.id,
-
-                    waktu:item.waktu,
-
-                    target:target,
-
-                    key:key,
-
-                    isAdzan:item.isAdzan,
-
-                    jedaSebelumPlay:0,
-
-                    urutan:item.urutan
-
-                });
-
-            }
+            playAudio(
+                item.id
+            );
 
         }
 
@@ -2994,12 +2634,6 @@ function cekHariBaru(){
 
 
         sudahDiputar = {};
-
-        /*
-            Bersihkan antrean lama saat berganti hari.
-        */
-
-        audioQueue = [];
 
 
         updateJadwal();
